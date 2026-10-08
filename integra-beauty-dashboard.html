@@ -264,7 +264,7 @@
 <script>
   // Para incluir um relatório, adicione um item em REPORTS.
   // rows (CSV): [dia AAAA-MM-DD, valor gasto USD, Margin %, Margin % 2]. O período vem do primeiro e do último dia.
-  // targets: dailySpend = meta de investimento por dia (USD); margin = margin mínima para ser considerada boa (0.20 = 20%).
+  // targets: dailySpend = meta de investimento por dia (USD); margin = margin mínima para ser considerada boa (0.20 = 20%); roas = ROAS a alcançar (site e offline).
   // dynamic: true quando o período do relatório no Meta é dinâmico.
   // sot: "adsets" = totais gerais (gasto e margins) calculados a partir de ADSETS, a fonte da verdade.
   const REPORTS = [
@@ -273,7 +273,7 @@
       url: "https://fb.me/2nXa3gFjgZlkyl4",
       dynamic: true,
       since: null, until: null,
-      targets: { dailySpend: 10000, margin: 0.20 },
+      targets: { dailySpend: 10000, margin: 0.20, roas: 2.5 },
       sot: "adsets", // totais gerais vêm da soma dos conjuntos de anúncios (ADSETS); os dias vêm das linhas abaixo
       rows: [
         ["2026-09-17", 2029.91, 0.21964381, 0.14538772],
@@ -367,6 +367,9 @@
   const wavgBy = (list, k) => { const ok = list.filter(a => a[k] != null), d = sum(ok.map(a => a.spend)); return d ? sum(ok.map(a => a.spend * a[k])) / d : null; };
   const aggBy = list => ({ n: list.length, spend: sum(list.map(a => a.spend)), roasWeb: wavgBy(list, "roasWeb"), roasOff: wavgBy(list, "roasOff"), m1: wavgBy(list, "m1"), m2: wavgBy(list, "m2") });
   const SOT = ADSETS.length ? aggBy(ADSETS) : null;
+  const roasF = v => v == null ? "—" : v.toFixed(2).replace(".", ",");
+  const roasT = v => String(v).replace(".", ",");
+  const roasChip = (v, t) => chip(v >= t, sgn(v - t, x => x.toFixed(2).replace(".", ",")));
   // dias com veiculação: do primeiro conjunto criado até o fim do período do CSV de conjuntos
   const sotDays = SOT ? Math.round((parse(ADSETS_SOURCE.until) - Math.max(parse(ADSETS_SOURCE.since), Math.min(...ADSETS.map(a => parse(a.created))))) / DAY) + 1 : null;
 
@@ -577,6 +580,16 @@
             <li>Dias na meta: <b>${dOk} de ${nd}</b></li>
           </ul></div>`;
       };
+      const rCard = (title, k) => {
+        const v = SOT[k], ok = v >= T.roas, nOk = ADSETS.filter(a => a[k] != null && a[k] >= T.roas).length;
+        return `<div class="goal">
+          <div class="top"><span class="k">${title}</span>${chip(ok, ok ? "Na meta" : "Abaixo da meta")}</div>
+          <div class="vrow"><span class="v">${roasF(v)}</span>${roasChip(v, T.roas)}</div>
+          <ul>
+            <li>Ponderado pelo gasto dos conjuntos · meta <b>${roasT(T.roas)}</b></li>
+            <li>Conjuntos na meta: <b>${nOk} de ${ADSETS.length}</b></li>
+          </ul></div>`;
+      };
       goals = `<div class="goals">
         <div class="goal">
           <div class="top"><span class="k">Investimento diário</span>${chip(spendOk, spendOk ? "Na meta" : "Abaixo da meta")}</div>
@@ -589,6 +602,7 @@
         </div>
         ${mCard("Margin %", "m1")}
         ${mCard("Margin % 2", "m2")}
+        ${useSot && T.roas != null ? rCard("ROAS site", "roasWeb") + rCard("ROAS offline", "roasOff") : ""}
       </div>`;
       const mean1 = useSot ? SOT.m1 : mean(data.map(d => d.m1)), mean2 = useSot ? SOT.m2 : mean(data.map(d => d.m2));
       tableRows = `<tr class="total"><td>Geral (${n} dias${useSot ? ", soma dos conjuntos" : ""})</td><td>${usd.format(total)}${spendChip(total, targetTotal)}</td><td>${pct1(mean1)}${marginChip(mean1, T.margin)}</td><td>${pct1(mean2)}${marginChip(mean2, T.margin)}</td></tr>` +
@@ -707,7 +721,7 @@
 
   // ---------- Campanhas e conjuntos ----------
   const GOAL = (reports.find(r => r.targets) || {}).targets || null;
-  const roasF = v => v == null ? "—" : v.toFixed(2).replace(".", ",");
+  const roasCell = v => v == null ? "—" : roasF(v) + (GOAL && GOAL.roas != null ? roasChip(v, GOAL.roas) : "");
   const mCell = v => v == null ? "—" : pct1(v) + (GOAL ? marginChip(v, GOAL.margin) : "");
   const baseName = a => a.name.split(/_?OPT_\d/i)[0];
   const lastEntry = id => entries.filter(e => e.adset.id === id).sort((a, b) => (b.date - a.date) || (b.mins - a.mins))[0];
@@ -723,7 +737,7 @@
     ["Valor gasto", usd.format(all.spend), "soma dos conjuntos · fonte da verdade"],
     ["Campanhas", String(camps.length), ""],
     ["Conjuntos de anúncios", String(ADSETS.length), ""],
-    ["ROAS site", roasF(all.roasWeb), "offline: " + roasF(all.roasOff) + " · ponderado pelo gasto"]
+    ["ROAS site", roasF(all.roasWeb) + (GOAL && GOAL.roas != null ? " " + roasChip(all.roasWeb, GOAL.roas) : ""), "offline: " + roasF(all.roasOff) + (GOAL && GOAL.roas != null ? " · meta " + roasT(GOAL.roas) : "") + " · ponderado pelo gasto"]
   ].map(t => `<div class="tile"><span class="k">${t[0]}</span><span class="v">${t[1]}</span>${t[2] ? `<span class="n">${t[2]}</span>` : ""}</div>`).join("");
   document.getElementById("camp-src").textContent = ADSETS_SOURCE.label + " · " + fmt.format(parse(ADSETS_SOURCE.since)) + " a " + fmt.format(parse(ADSETS_SOURCE.until));
 
@@ -731,7 +745,7 @@
     const share = all.spend ? a.spend / all.spend : 0;
     return `<tr class="${cls || ""}"><td title="${esc(title || "")}">${esc(label)}</td><td>${a.n}</td><td>${usd.format(a.spend)}</td>` +
       `<td><span class="share"><span class="bar"><i style="width:${(share * 100).toFixed(1)}%"></i></span>${dec1(share * 100)}%</span></td>` +
-      `<td>${roasF(a.roasWeb)}</td><td>${roasF(a.roasOff)}</td><td>${mCell(a.m1)}</td><td>${mCell(a.m2)}</td></tr>`;
+      `<td>${roasCell(a.roasWeb)}</td><td>${roasCell(a.roasOff)}</td><td>${mCell(a.m1)}</td><td>${mCell(a.m2)}</td></tr>`;
   };
   document.getElementById("camp-table").innerHTML =
     `<thead><tr><th>Campanha</th><th>Conjuntos</th><th>Valor gasto (USD)</th><th>% do gasto</th><th>ROAS site</th><th>ROAS offline</th><th>Margin %</th><th>Margin % 2</th></tr></thead><tbody>` +
@@ -759,7 +773,7 @@
     document.getElementById("ad-tbody").innerHTML = list.map(a => {
       const e = lastEntry(a.id);
       const opt = e ? String(e.date.getDate()).padStart(2, "0") + "/" + String(e.date.getMonth() + 1).padStart(2, "0") + " " + timeLabel(e) + " " + actionChip(e) : "—";
-      return `<tr><td>${esc(baseName(a))}</td><td title="${esc(a.campaign)}">${esc(campShort(a.campaign))}</td><td>${usd.format(a.spend)}</td><td>${roasF(a.roasWeb)}</td><td>${roasF(a.roasOff)}</td><td>${mCell(a.m1)}</td><td>${mCell(a.m2)}</td><td>${esc(a.bid)}</td><td>${num2.format(a.budget)}</td><td>${opt}</td></tr>`;
+      return `<tr><td>${esc(baseName(a))}</td><td title="${esc(a.campaign)}">${esc(campShort(a.campaign))}</td><td>${usd.format(a.spend)}</td><td>${roasCell(a.roasWeb)}</td><td>${roasCell(a.roasOff)}</td><td>${mCell(a.m1)}</td><td>${mCell(a.m2)}</td><td>${esc(a.bid)}</td><td>${num2.format(a.budget)}</td><td>${opt}</td></tr>`;
     }).join("");
     document.getElementById("ad-count").textContent = list.length + (list.length === 1 ? " conjunto" : " conjuntos");
   }
