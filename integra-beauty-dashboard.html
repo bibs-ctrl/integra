@@ -1,0 +1,212 @@
+<title>Integra Beauty Relatórios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+  /* Layout: cabeçalho, 3 indicadores, linha do tempo dos períodos, lista de relatórios com botão de abertura */
+  :root {
+    --bg: #f6f3f5;
+    --surface: #ffffff;
+    --fg: #2b1f2e;
+    --muted: #6f6272;
+    --line: #e3dce5;
+    --accent: #6b2e5f;
+    --accent-fg: #ffffff;
+    --accent-soft: #eddff0;
+    --ok: #1f7a4d;
+    --ok-soft: #dff1e7;
+    --warn: #8a5a00;
+    --warn-soft: #fbefd2;
+    --info: #3a4f8f;
+    --info-soft: #e1e7f7;
+    --font-display: "Instrument Serif", Georgia, serif;
+    --font-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1a121c;
+      --surface: #251a28;
+      --fg: #f0e7f2;
+      --muted: #a898ac;
+      --line: #3a2c3e;
+      --accent: #d9a2cc;
+      --accent-fg: #2a1428;
+      --accent-soft: #3d2840;
+      --ok: #7fd1a3;
+      --ok-soft: #1f3a2d;
+      --warn: #f0c970;
+      --warn-soft: #3d3214;
+      --info: #a9bbf0;
+      --info-soft: #25305a;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #1a121c;
+    --surface: #251a28;
+    --fg: #f0e7f2;
+    --muted: #a898ac;
+    --line: #3a2c3e;
+    --accent: #d9a2cc;
+    --accent-fg: #2a1428;
+    --accent-soft: #3d2840;
+    --ok: #7fd1a3;
+    --ok-soft: #1f3a2d;
+    --warn: #f0c970;
+    --warn-soft: #3d3214;
+    --info: #a9bbf0;
+    --info-soft: #25305a;
+    color-scheme: dark;
+  }
+
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; padding-inline: 16px; padding-block: 28px 56px; }
+  .wrap { max-width: 980px; margin-inline: auto; display: flex; flex-direction: column; gap: 28px; }
+  h1, h2 { font-family: var(--font-display); font-weight: 400; margin: 0; text-wrap: balance; }
+  h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1.05; letter-spacing: -0.01em; }
+  h2 { font-size: 24px; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  header { display: flex; flex-direction: column; gap: 8px; }
+  header p { margin: 0; color: var(--muted); max-width: 60ch; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .tile .k { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .tile .v { font-family: var(--font-display); font-size: 32px; line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .tile .v.small { font-size: 22px; }
+
+  section { display: flex; flex-direction: column; gap: 12px; }
+  .section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .hint { color: var(--muted); font-size: 13px; }
+
+  .timeline { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .tl-scroll { overflow-x: auto; }
+  .tl-inner { min-width: 520px; position: relative; }
+  .tl-axis { position: relative; height: 22px; border-bottom: 1px solid var(--line); }
+  .tl-tick { position: absolute; top: 0; font-size: 11px; color: var(--muted); transform: translateX(-50%); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tl-row { position: relative; height: 34px; border-bottom: 1px dashed var(--line); }
+  .tl-row:last-child { border-bottom: 0; }
+  .tl-bar { position: absolute; top: 7px; height: 20px; border-radius: 4px; background: var(--accent); min-width: 6px; }
+  .tl-bar.is-live { background: var(--ok); }
+  .tl-grid { position: absolute; top: 22px; bottom: 0; width: 1px; background: var(--line); opacity: .6; }
+  .tl-today { position: absolute; top: 22px; bottom: 0; width: 2px; background: var(--warn); }
+  .tl-today span { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--warn); font-weight: 600; }
+  .tl-empty { color: var(--muted); font-size: 14px; padding-block: 8px; }
+
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .report { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; grid-template-columns: 1fr auto; gap: 12px 16px; align-items: center; }
+  .report .main { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .report .name { font-weight: 600; font-size: 16px; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .meta b { color: var(--fg); font-weight: 500; }
+  .pill { display: inline-flex; align-items: center; width: fit-content; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.info { background: var(--info-soft); color: var(--info); }
+  .pill.off { background: var(--accent-soft); color: var(--accent); }
+  .open { background: var(--accent); color: var(--accent-fg); text-decoration: none; font-weight: 600; padding: 10px 16px; border-radius: 8px; white-space: nowrap; }
+  .open:hover { filter: brightness(1.08); }
+  .open:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
+  .url { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+  @media (max-width: 560px) { .report { grid-template-columns: 1fr; } .open { text-align: center; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Meta Ads · Relatórios salvos</span>
+    <h1>Integra Beauty</h1>
+    <p>Cada relatório abre no Gerenciador de Anúncios com o período que foi salvo nele.</p>
+  </header>
+
+  <div class="tiles" id="tiles"></div>
+
+  <section>
+    <div class="section-head"><h2>Períodos</h2><span class="hint" id="tl-hint"></span></div>
+    <div class="timeline"><div class="tl-scroll"><div class="tl-inner" id="timeline"></div></div></div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Relatórios</h2><span class="hint" id="count"></span></div>
+    <div class="list" id="list"></div>
+  </section>
+</div>
+
+<script>
+  // Para incluir um relatório, adicione um item aqui. Datas no formato AAAA-MM-DD.
+  // since/until = intervalo salvo no relatório. Deixe null se ainda não informado.
+  const REPORTS = [
+    { name: "Relatório 1", url: "https://fb.me/2nXa3gFjgZlkyl4", since: null, until: null }
+  ];
+
+  const TODAY = new Date(2026, 9, 8); // 08/10/2026
+  const DAY = 86400000;
+  const fmt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const fmtShort = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" });
+  const parse = s => { if (!s) return null; const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+  const days = r => (r.s && r.e) ? Math.round((r.e - r.s) / DAY) + 1 : null;
+
+  const reports = REPORTS.map(r => ({ ...r, s: parse(r.since), e: parse(r.until) }));
+  const dated = reports.filter(r => r.s && r.e);
+
+  function status(r) {
+    if (!r.s || !r.e) return { cls: "off", label: "Período não informado" };
+    if (TODAY < r.s) return { cls: "info", label: "Futuro" };
+    if (TODAY <= r.e) return { cls: "ok", label: "Em andamento" };
+    return { cls: "warn", label: "Encerrado" };
+  }
+
+  // Indicadores
+  const minS = dated.length ? new Date(Math.min(...dated.map(r => r.s))) : null;
+  const maxE = dated.length ? new Date(Math.max(...dated.map(r => r.e))) : null;
+  const tiles = [
+    ["Relatórios", String(reports.length), ""],
+    ["Período coberto", minS ? fmt.format(minS) + " a " + fmt.format(maxE) : "—", "small"],
+    ["Sem período informado", String(reports.length - dated.length), ""]
+  ];
+  document.getElementById("tiles").innerHTML = tiles.map(t =>
+    `<div class="tile"><span class="k">${t[0]}</span><span class="v ${t[2]}">${t[1]}</span></div>`).join("");
+
+  // Linha do tempo
+  const tl = document.getElementById("timeline");
+  if (!dated.length) {
+    tl.innerHTML = `<div class="tl-empty">Nenhum relatório com período informado. As barras aparecem aqui quando houver datas.</div>`;
+    document.getElementById("tl-hint").textContent = "";
+  } else {
+    const start = new Date(minS.getFullYear(), minS.getMonth(), 1);
+    const endBase = new Date(Math.max(maxE, TODAY));
+    const end = new Date(endBase.getFullYear(), endBase.getMonth() + 1, 1);
+    const span = end - start;
+    const pct = d => ((d - start) / span * 100).toFixed(3) + "%";
+    let ticks = "", grid = "";
+    for (let d = new Date(start); d < end; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+      ticks += `<span class="tl-tick" style="left:${pct(d)}">${fmtShort.format(d).replace(".", "")}</span>`;
+      grid += `<span class="tl-grid" style="left:${pct(d)}"></span>`;
+    }
+    const rows = dated.map(r => {
+      const live = status(r).cls === "ok";
+      const left = pct(r.s), width = (((r.e - r.s) + DAY) / span * 100).toFixed(3) + "%";
+      return `<div class="tl-row"><div class="tl-bar ${live ? "is-live" : ""}" style="left:${left};width:${width}" title="${r.name}: ${fmt.format(r.s)} a ${fmt.format(r.e)}"></div></div>`;
+    }).join("");
+    const today = (TODAY >= start && TODAY <= end) ? `<span class="tl-today" style="left:${pct(TODAY)}"><span>hoje</span></span>` : "";
+    tl.innerHTML = `<div class="tl-axis">${ticks}</div>${grid}${today}${rows}`;
+    document.getElementById("tl-hint").textContent = "Barra verde: período inclui hoje";
+  }
+
+  // Lista
+  document.getElementById("count").textContent = reports.length + (reports.length === 1 ? " relatório" : " relatórios");
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  document.getElementById("list").innerHTML = reports.map(r => {
+    const st = status(r), n = days(r);
+    const period = (r.s && r.e)
+      ? `<span>Período <b>${fmt.format(r.s)} a ${fmt.format(r.e)}</b></span><span><b>${n}</b> ${n === 1 ? "dia" : "dias"}</span>`
+      : `<span>Informe as datas do relatório para exibir o período.</span>`;
+    return `<article class="report">
+      <div class="main">
+        <span class="name">${esc(r.name)}</span>
+        <span class="pill ${st.cls}">${st.label}</span>
+        <div class="meta">${period}</div>
+        <span class="url">${esc(r.url)}</span>
+      </div>
+      <a class="open" href="${esc(r.url)}" target="_blank" rel="noopener">Abrir no Meta Ads</a>
+    </article>`;
+  }).join("");
+</script>
