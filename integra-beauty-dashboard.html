@@ -3,7 +3,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
 <style>
-  /* Layout: cabeçalho, 3 indicadores, linha do tempo dos períodos, lista de relatórios com botão de abertura */
+  /* Layout: cabeçalho, indicadores, linha do tempo dos períodos, lista de relatórios, detalhe por relatório (indicadores, 2 gráficos, tabela) */
   :root {
     --bg: #f6f3f5;
     --surface: #ffffff;
@@ -19,6 +19,10 @@
     --warn-soft: #fbefd2;
     --info: #3a4f8f;
     --info-soft: #e1e7f7;
+    --s1: #2a78d6;
+    --s2: #eb6834;
+    --grid: #ece6ee;
+    --hover: rgba(107, 46, 95, 0.08);
     --font-display: "Instrument Serif", Georgia, serif;
     --font-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   }
@@ -38,6 +42,10 @@
       --warn-soft: #3d3214;
       --info: #a9bbf0;
       --info-soft: #25305a;
+      --s1: #3987e5;
+      --s2: #d95926;
+      --grid: #382b3b;
+      --hover: rgba(217, 162, 204, 0.12);
       color-scheme: dark;
     }
   }
@@ -56,6 +64,10 @@
     --warn-soft: #3d3214;
     --info: #a9bbf0;
     --info-soft: #25305a;
+    --s1: #3987e5;
+    --s2: #d95926;
+    --grid: #382b3b;
+    --hover: rgba(217, 162, 204, 0.12);
     color-scheme: dark;
   }
 
@@ -64,15 +76,17 @@
   h1, h2 { font-family: var(--font-display); font-weight: 400; margin: 0; text-wrap: balance; }
   h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1.05; letter-spacing: -0.01em; }
   h2 { font-size: 24px; }
+  h3 { margin: 0; font-size: 15px; font-weight: 600; }
   .eyebrow { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
   header { display: flex; flex-direction: column; gap: 8px; }
   header p { margin: 0; color: var(--muted); max-width: 60ch; }
 
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
   .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
   .tile .k { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
-  .tile .v { font-family: var(--font-display); font-size: 32px; line-height: 1.1; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-  .tile .v.small { font-size: 22px; }
+  .tile .v { font-size: 26px; line-height: 1.15; font-weight: 600; overflow-wrap: anywhere; }
+  .tile .v.small { font-size: 18px; }
+  .tile .n { font-size: 12px; color: var(--muted); }
 
   section { display: flex; flex-direction: column; gap: 12px; }
   .section-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
@@ -82,14 +96,16 @@
   .tl-scroll { overflow-x: auto; }
   .tl-inner { min-width: 520px; position: relative; }
   .tl-axis { position: relative; height: 22px; border-bottom: 1px solid var(--line); }
-  .tl-tick { position: absolute; top: 0; font-size: 11px; color: var(--muted); transform: translateX(-50%); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tl-tick { position: absolute; top: 0; font-size: 11px; color: var(--muted); transform: translateX(-50%);}
+  .tl-tick.first { transform: none; }
+  .tl-tick { white-space: nowrap; font-variant-numeric: tabular-nums; }
   .tl-row { position: relative; height: 34px; border-bottom: 1px dashed var(--line); }
   .tl-row:last-child { border-bottom: 0; }
   .tl-bar { position: absolute; top: 7px; height: 20px; border-radius: 4px; background: var(--accent); min-width: 6px; }
   .tl-bar.is-live { background: var(--ok); }
   .tl-grid { position: absolute; top: 22px; bottom: 0; width: 1px; background: var(--line); opacity: .6; }
   .tl-today { position: absolute; top: 22px; bottom: 0; width: 2px; background: var(--warn); }
-  .tl-today span { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--warn); font-weight: 600; }
+  .tl-today span { position: absolute; top: -22px; right: 6px; font-size: 11px; color: var(--warn); font-weight: 600; }
   .tl-empty { color: var(--muted); font-size: 14px; padding-block: 8px; }
 
   .list { display: flex; flex-direction: column; gap: 10px; }
@@ -107,14 +123,36 @@
   .open:hover { filter: brightness(1.08); }
   .open:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
   .url { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+
+  .detail { display: flex; flex-direction: column; gap: 14px; }
+  .chart-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+  .chart-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 16px; flex-wrap: wrap; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+  .legend i { display: inline-block; width: 14px; height: 2px; border-radius: 1px; vertical-align: middle; margin-right: 6px; }
+  .chart { position: relative; width: 100%; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { font-family: var(--font-body); }
+  .tip { position: absolute; top: 0; pointer-events: none; background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.5; box-shadow: 0 4px 14px rgba(0,0,0,.14); white-space: nowrap; z-index: 2; }
+  .tip b { font-weight: 600; }
+  .tip .row { display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+  .tip .sw { width: 8px; height: 8px; border-radius: 50%; }
+  details.table-view { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+  details.table-view summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+  details.table-view summary:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
+  .tbl-scroll { overflow-x: auto; margin-top: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
   @media (max-width: 560px) { .report { grid-template-columns: 1fr; } .open { text-align: center; } }
+  @media (prefers-reduced-motion: no-preference) { .tip { transition: left .05s linear; } }
 </style>
 
 <div class="wrap">
   <header>
     <span class="eyebrow">Meta Ads · Relatórios salvos</span>
     <h1>Integra Beauty</h1>
-    <p>Cada relatório abre no Gerenciador de Anúncios com o período que foi salvo nele.</p>
+    <p>Cada relatório abre no Gerenciador de Anúncios. Quando há CSV exportado, o período e os dados diários aparecem aqui.</p>
   </header>
 
   <div class="tiles" id="tiles"></div>
@@ -128,33 +166,79 @@
     <div class="section-head"><h2>Relatórios</h2><span class="hint" id="count"></span></div>
     <div class="list" id="list"></div>
   </section>
+
+  <div id="details" style="display:flex;flex-direction:column;gap:28px;min-width:0"></div>
 </div>
 
 <script>
-  // Para incluir um relatório, adicione um item aqui. Datas no formato AAAA-MM-DD.
-  // since/until = intervalo salvo no relatório. Deixe null se ainda não informado.
+  // Para incluir um relatório, adicione um item aqui.
+  // rows (opcional, do CSV): [dia AAAA-MM-DD, valor gasto USD, Margin %, Margin % 2]. O período vem do primeiro e do último dia.
+  // Sem rows: informe since/until (AAAA-MM-DD) ou deixe null.
+  // dynamic: true quando o período do relatório no Meta é dinâmico (a janela muda com o tempo).
   const REPORTS = [
-    { name: "Relatório 1", url: "https://fb.me/2nXa3gFjgZlkyl4", since: null, until: null }
+    {
+      name: "Relatório 1 (Zones)",
+      url: "https://fb.me/2nXa3gFjgZlkyl4",
+      dynamic: true,
+      since: null, until: null,
+      rows: [
+        ["2026-09-17", 2029.91, 0.21964381, 0.14538772],
+        ["2026-09-18", 8657.39, 0.14667308, 0.14880589],
+        ["2026-09-19", 7784.69, 0.20260631, 0.24116167],
+        ["2026-09-20", 1818.94, 0.26581915, 0.18992472],
+        ["2026-09-21", 4020.46, 0.27676945, 0.25964907],
+        ["2026-09-22", 3402.79, 0.21965878, 0.2624916],
+        ["2026-09-23", 4180.22, 0.24428562, 0.21819456],
+        ["2026-09-24", 10582.41, 0.15739256, 0.14418624],
+        ["2026-09-25", 12721.19, 0.16715873, 0.13200171],
+        ["2026-09-26", 12475.71, 0.21697717, 0.23039405],
+        ["2026-09-27", 8605.28, 0.18212405, 0.17556736],
+        ["2026-09-28", 13953.71, 0.22451621, 0.23808007],
+        ["2026-09-29", 9081.94, 0.17772303, 0.18401678],
+        ["2026-09-30", 12687.22, 0.19021804, 0.21839594],
+        ["2026-10-01", 14510.89, 0.23459064, 0.18776273],
+        ["2026-10-02", 16871.92, 0.17367778, 0.06894651],
+        ["2026-10-03", 13445.06, 0.14352917, 0.07631773],
+        ["2026-10-04", 9316.42, 0.23073658, 0.1172454],
+        ["2026-10-05", 9306.31, 0.17493919, 0.13321975],
+        ["2026-10-06", 5628.42, 0.26420774, 0.25644231],
+        ["2026-10-07", 3458.26, 0.3205049, 0.2845265]
+      ]
+    }
   ];
 
   const TODAY = new Date(2026, 9, 8); // 08/10/2026
   const DAY = 86400000;
   const fmt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
   const fmtShort = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" });
+  const usd = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD" });
+  const int = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
+  const usd0 = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const pct1 = v => (v * 100).toFixed(1).replace(".", ",") + "%";
   const parse = s => { if (!s) return null; const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
-  const days = r => (r.s && r.e) ? Math.round((r.e - r.s) / DAY) + 1 : null;
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-  const reports = REPORTS.map(r => ({ ...r, s: parse(r.since), e: parse(r.until) }));
+  const reports = REPORTS.map(r => {
+    const hasRows = r.rows && r.rows.length;
+    return {
+      ...r,
+      s: hasRows ? parse(r.rows[0][0]) : parse(r.since),
+      e: hasRows ? parse(r.rows[r.rows.length - 1][0]) : parse(r.until),
+      fromCsv: !!hasRows
+    };
+  });
+  const days = r => (r.s && r.e) ? Math.round((r.e - r.s) / DAY) + 1 : null;
   const dated = reports.filter(r => r.s && r.e);
 
   function status(r) {
     if (!r.s || !r.e) return { cls: "off", label: "Período não informado" };
+    if (r.dynamic) return { cls: "info", label: "Período dinâmico" };
     if (TODAY < r.s) return { cls: "info", label: "Futuro" };
     if (TODAY <= r.e) return { cls: "ok", label: "Em andamento" };
     return { cls: "warn", label: "Encerrado" };
   }
 
-  // Indicadores
+  // Indicadores gerais
   const minS = dated.length ? new Date(Math.min(...dated.map(r => r.s))) : null;
   const maxE = dated.length ? new Date(Math.max(...dated.map(r => r.e))) : null;
   const tiles = [
@@ -169,7 +253,6 @@
   const tl = document.getElementById("timeline");
   if (!dated.length) {
     tl.innerHTML = `<div class="tl-empty">Nenhum relatório com período informado. As barras aparecem aqui quando houver datas.</div>`;
-    document.getElementById("tl-hint").textContent = "";
   } else {
     const start = new Date(minS.getFullYear(), minS.getMonth(), 1);
     const endBase = new Date(Math.max(maxE, TODAY));
@@ -178,26 +261,25 @@
     const pct = d => ((d - start) / span * 100).toFixed(3) + "%";
     let ticks = "", grid = "";
     for (let d = new Date(start); d < end; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
-      ticks += `<span class="tl-tick" style="left:${pct(d)}">${fmtShort.format(d).replace(".", "")}</span>`;
+      ticks += `<span class="tl-tick${d.getTime() === start.getTime() ? " first" : ""}" style="left:${pct(d)}">${fmtShort.format(d).replace(".", "")}</span>`;
       grid += `<span class="tl-grid" style="left:${pct(d)}"></span>`;
     }
     const rows = dated.map(r => {
       const live = status(r).cls === "ok";
       const left = pct(r.s), width = (((r.e - r.s) + DAY) / span * 100).toFixed(3) + "%";
-      return `<div class="tl-row"><div class="tl-bar ${live ? "is-live" : ""}" style="left:${left};width:${width}" title="${r.name}: ${fmt.format(r.s)} a ${fmt.format(r.e)}"></div></div>`;
+      return `<div class="tl-row"><div class="tl-bar ${live ? "is-live" : ""}" style="left:${left};width:${width}" title="${esc(r.name)}: ${fmt.format(r.s)} a ${fmt.format(r.e)}"></div></div>`;
     }).join("");
     const today = (TODAY >= start && TODAY <= end) ? `<span class="tl-today" style="left:${pct(TODAY)}"><span>hoje</span></span>` : "";
     tl.innerHTML = `<div class="tl-axis">${ticks}</div>${grid}${today}${rows}`;
-    document.getElementById("tl-hint").textContent = "Barra verde: período inclui hoje";
+    document.getElementById("tl-hint").textContent = "Linha laranja: hoje";
   }
 
   // Lista
   document.getElementById("count").textContent = reports.length + (reports.length === 1 ? " relatório" : " relatórios");
-  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   document.getElementById("list").innerHTML = reports.map(r => {
     const st = status(r), n = days(r);
     const period = (r.s && r.e)
-      ? `<span>Período <b>${fmt.format(r.s)} a ${fmt.format(r.e)}</b></span><span><b>${n}</b> ${n === 1 ? "dia" : "dias"}</span>`
+      ? `<span>Período <b>${fmt.format(r.s)} a ${fmt.format(r.e)}</b></span><span><b>${n}</b> ${n === 1 ? "dia" : "dias"}</span>${r.fromCsv ? "<span>Fonte: CSV exportado</span>" : ""}`
       : `<span>Informe as datas do relatório para exibir o período.</span>`;
     return `<article class="report">
       <div class="main">
@@ -209,4 +291,124 @@
       <a class="open" href="${esc(r.url)}" target="_blank" rel="noopener">Abrir no Meta Ads</a>
     </article>`;
   }).join("");
+
+  // ---------- Gráficos ----------
+  function drawChart(host, o) {
+    const rows = o.rows, n = rows.length;
+    const W = Math.max(host.clientWidth, 260), H = 240;
+    const m = { l: 48, r: o.kind === "line" ? 48 : 12, t: 20, b: 26 };
+    const pw = W - m.l - m.r, ph = H - m.t - m.b, band = pw / n;
+    const cx = i => m.l + band * (i + 0.5);
+    const y = v => m.t + ph - (v / o.yMax) * ph;
+    let g = "";
+    o.yTicks.forEach(t => {
+      g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)" stroke-width="1"/>`;
+      g += `<text x="${m.l - 8}" y="${y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${o.yFmt(t)}</text>`;
+    });
+    const step = Math.ceil(46 / band);
+    rows.forEach((r, i) => {
+      if (i % step === 0) {
+        const d = parse(r.date);
+        g += `<text x="${cx(i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--muted)">${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}</text>`;
+      }
+    });
+    if (o.kind === "bar") {
+      const s = o.series[0], w = Math.min(24, Math.max(band - 2, 3)), y0 = y(0);
+      let peak = 0;
+      rows.forEach((r, i) => { if (r[s.key] > rows[peak][s.key]) peak = i; });
+      rows.forEach((r, i) => {
+        const x = cx(i) - w / 2, yt = y(r[s.key]), rr = Math.min(4, w / 2, y0 - yt);
+        g += `<path d="M${x},${y0} V${yt + rr} Q${x},${yt} ${x + rr},${yt} H${x + w - rr} Q${x + w},${yt} ${x + w},${yt + rr} V${y0} Z" fill="${s.color}"/>`;
+      });
+      const px = Math.min(Math.max(cx(peak), m.l + 36), W - m.r - 36);
+      g += `<text x="${px}" y="${y(rows[peak][s.key]) - 6}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--fg)">${o.labelFmt(rows[peak][s.key])}</text>`;
+    } else {
+      o.series.forEach(s => {
+        const pts = rows.map((r, i) => `${cx(i).toFixed(1)},${y(r[s.key]).toFixed(1)}`).join(" ");
+        g += `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+        const li = n - 1, v = rows[li][s.key];
+        g += `<circle cx="${cx(li)}" cy="${y(v)}" r="4" fill="${s.color}" stroke="var(--surface)" stroke-width="2"/>`;
+        g += `<text x="${cx(li) + 10}" y="${y(v) + 4}" font-size="12" font-weight="600" fill="var(--fg)">${o.labelFmt(v)}</text>`;
+      });
+    }
+    host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(o.aria)}">${g}<g id="hv"></g><rect class="hit" x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="transparent"/></svg><div class="tip" hidden></div>`;
+    host.dataset.w = W;
+    const svg = host.querySelector("svg"), hv = svg.querySelector("#hv"), tip = host.querySelector(".tip"), hit = svg.querySelector(".hit");
+    const show = e => {
+      const rect = svg.getBoundingClientRect(), scale = W / rect.width;
+      let i = Math.floor(((e.clientX - rect.left) * scale - m.l) / band);
+      i = Math.max(0, Math.min(n - 1, i));
+      const r = rows[i];
+      let h = o.kind === "bar"
+        ? `<rect x="${cx(i) - band / 2}" y="${m.t}" width="${band}" height="${ph}" fill="var(--hover)"/>`
+        : `<line x1="${cx(i)}" x2="${cx(i)}" y1="${m.t}" y2="${m.t + ph}" stroke="var(--muted)" stroke-width="1"/>`;
+      if (o.kind === "line") o.series.forEach(s => { h += `<circle cx="${cx(i)}" cy="${y(r[s.key])}" r="4" fill="${s.color}" stroke="var(--surface)" stroke-width="2"/>`; });
+      hv.innerHTML = h;
+      const d = parse(r.date);
+      tip.innerHTML = `<b>${fmt.format(d)}</b>` + o.series.map(s => `<div class="row"><span class="sw" style="background:${s.color}"></span>${s.name}: <b>${o.tipFmt(r[s.key])}</b></div>`).join("");
+      tip.hidden = false;
+      const tw = tip.offsetWidth, px = cx(i) / scale;
+      tip.style.left = Math.max(0, Math.min(px + 14 > rect.width - tw ? px - tw - 14 : px + 14, rect.width - tw)) + "px";
+    };
+    hit.addEventListener("pointermove", show);
+    hit.addEventListener("pointerdown", show);
+    hit.addEventListener("pointerleave", () => { hv.innerHTML = ""; tip.hidden = true; });
+  }
+
+  const charts = [];
+  function mountChart(host, opts) {
+    const run = () => drawChart(host, opts);
+    run();
+    charts.push({ host, run });
+  }
+  if (window.ResizeObserver) {
+    new ResizeObserver(() => charts.forEach(c => { if (Math.abs(c.host.clientWidth - Number(c.host.dataset.w)) > 1) c.run(); }))
+      .observe(document.body);
+  }
+
+  // ---------- Detalhe por relatório ----------
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  reports.filter(r => r.fromCsv).forEach((r, idx) => {
+    const data = r.rows.map(x => ({ date: x[0], spend: x[1], m1: x[2], m2: x[3] }));
+    const total = data.reduce((x, d) => x + d.spend, 0);
+    const peak = data.reduce((a, d) => d.spend > a.spend ? d : a, data[0]);
+    const el = document.createElement("section");
+    el.className = "detail";
+    el.innerHTML = `
+      <div class="section-head"><h2>${esc(r.name)}</h2><span class="hint">${fmt.format(r.s)} a ${fmt.format(r.e)} · dados do CSV</span></div>
+      <div class="tiles">
+        <div class="tile"><span class="k">Valor gasto</span><span class="v">${usd.format(total)}</span><span class="n">${data.length} dias</span></div>
+        <div class="tile"><span class="k">Gasto médio por dia</span><span class="v">${usd.format(total / data.length)}</span><span class="n">pico em ${fmt.format(parse(peak.date))}: ${usd.format(peak.spend)}</span></div>
+        <div class="tile"><span class="k">Margin %</span><span class="v">${pct1(mean(data.map(d => d.m1)))}</span><span class="n">média simples dos dias</span></div>
+        <div class="tile"><span class="k">Margin % 2</span><span class="v">${pct1(mean(data.map(d => d.m2)))}</span><span class="n">média simples dos dias</span></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head"><h3>Valor gasto por dia (USD)</h3></div>
+        <div class="chart" id="c-spend-${idx}"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-head"><h3>Margin % por dia</h3>
+          <div class="legend"><span><i style="background:var(--s1)"></i>Margin %</span><span><i style="background:var(--s2)"></i>Margin % 2</span></div></div>
+        <div class="chart" id="c-margin-${idx}"></div>
+      </div>
+      <details class="table-view"><summary>Ver tabela de dados</summary>
+        <div class="tbl-scroll"><table>
+          <thead><tr><th>Dia</th><th>Valor gasto (USD)</th><th>Margin %</th><th>Margin % 2</th></tr></thead>
+          <tbody>${data.map(d => `<tr><td>${fmt.format(parse(d.date))}</td><td>${usd.format(d.spend)}</td><td>${pct1(d.m1)}</td><td>${pct1(d.m2)}</td></tr>`).join("")}</tbody>
+        </table></div>
+      </details>`;
+    document.getElementById("details").appendChild(el);
+    mountChart(el.querySelector(`#c-spend-${idx}`), {
+      kind: "bar", rows: data, yMax: 20000, yTicks: [0, 5000, 10000, 15000, 20000],
+      yFmt: v => int.format(v), labelFmt: v => usd0.format(v), tipFmt: v => usd.format(v),
+      series: [{ key: "spend", name: "Valor gasto", color: "var(--s1)" }],
+      aria: "Valor gasto por dia em dólares, de " + fmt.format(r.s) + " a " + fmt.format(r.e)
+    });
+    mountChart(el.querySelector(`#c-margin-${idx}`), {
+      kind: "line", rows: data, yMax: 0.4, yTicks: [0, 0.1, 0.2, 0.3, 0.4],
+      yFmt: v => Math.round(v * 100) + "%", labelFmt: pct1, tipFmt: pct1,
+      series: [{ key: "m1", name: "Margin %", color: "var(--s1)" }, { key: "m2", name: "Margin % 2", color: "var(--s2)" }],
+      aria: "Margin % e Margin % 2 por dia, de " + fmt.format(r.s) + " a " + fmt.format(r.e)
+    });
+  });
 </script>
