@@ -266,6 +266,7 @@
   // rows (CSV): [dia AAAA-MM-DD, valor gasto USD, Margin %, Margin % 2]. O período vem do primeiro e do último dia.
   // targets: dailySpend = meta de investimento por dia (USD); margin = margin mínima para ser considerada boa (0.20 = 20%).
   // dynamic: true quando o período do relatório no Meta é dinâmico.
+  // sot: "adsets" = totais gerais (gasto e margins) calculados a partir de ADSETS, a fonte da verdade.
   const REPORTS = [
     {
       name: "Relatório 1 (Zones)",
@@ -273,6 +274,7 @@
       dynamic: true,
       since: null, until: null,
       targets: { dailySpend: 10000, margin: 0.20 },
+      sot: "adsets", // totais gerais vêm da soma dos conjuntos de anúncios (ADSETS); os dias vêm das linhas abaixo
       rows: [
         ["2026-09-17", 2029.91, 0.21964381, 0.14538772],
         ["2026-09-18", 8657.39, 0.14667308, 0.14880589],
@@ -361,6 +363,12 @@
   const sum = a => a.reduce((x, y) => x + y, 0);
   const num2 = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
   const campShort = n => String(n).replace(/^BIDCAP_ZONES_/, "").replace(/#FORCE#$/, "");
+
+  const wavgBy = (list, k) => { const ok = list.filter(a => a[k] != null), d = sum(ok.map(a => a.spend)); return d ? sum(ok.map(a => a.spend * a[k])) / d : null; };
+  const aggBy = list => ({ n: list.length, spend: sum(list.map(a => a.spend)), roasWeb: wavgBy(list, "roasWeb"), roasOff: wavgBy(list, "roasOff"), m1: wavgBy(list, "m1"), m2: wavgBy(list, "m2") });
+  const SOT = ADSETS.length ? aggBy(ADSETS) : null;
+  // dias com veiculação: do primeiro conjunto criado até o fim do período do CSV de conjuntos
+  const sotDays = SOT ? Math.round((parse(ADSETS_SOURCE.until) - Math.max(parse(ADSETS_SOURCE.since), Math.min(...ADSETS.map(a => parse(a.created))))) / DAY) + 1 : null;
 
   // ---------- Abas ----------
   const tabs = { rel: document.getElementById("tab-rel"), camp: document.getElementById("tab-camp"), opt: document.getElementById("tab-opt") };
@@ -540,8 +548,10 @@
   reports.filter(r => r.fromCsv).forEach((r, idx) => {
     const data = r.rows.map(x => ({ date: x[0], spend: x[1], m1: x[2], m2: x[3] }));
     const T = r.targets;
-    const n = data.length, total = data.reduce((x, d) => x + d.spend, 0);
-    const wavg = k => data.reduce((x, d) => x + d.spend * d[k], 0) / total;
+    const useSot = r.sot === "adsets" && SOT;
+    const nd = data.length, dTotal = data.reduce((x, d) => x + d.spend, 0);
+    const n = useSot ? sotDays : nd, total = useSot ? SOT.spend : dTotal;
+    const wavg = k => data.reduce((x, d) => x + d.spend * d[k], 0) / dTotal;
     const el = document.createElement("section");
     el.className = "detail";
 
@@ -551,15 +561,20 @@
       const spendDays = data.filter(d => d.spend >= T.dailySpend).length;
       const spendOk = avg >= T.dailySpend;
       const mCard = (title, k) => {
-        const simple = mean(data.map(d => d[k])), w = wavg(k), ok = simple >= T.margin;
+        const simple = mean(data.map(d => d[k])), w = wavg(k);
+        const main = useSot ? SOT[k] : simple, ok = main >= T.margin;
         const dOk = data.filter(d => d[k] >= T.margin).length;
+        const lines = useSot
+          ? `<li>Ponderada pelo gasto dos conjuntos · meta <b>${pctT(T.margin)}</b></li>
+            <li>Média simples dos dias (CSV diário): <b>${pct1(simple)}</b> (${simple >= T.margin ? "na meta" : "abaixo da meta"})</li>`
+          : `<li>Média simples dos dias · meta <b>${pctT(T.margin)}</b></li>
+            <li>Ponderada pelo gasto: <b>${pct1(w)}</b> (${w >= T.margin ? "na meta" : "abaixo da meta"})</li>`;
         return `<div class="goal">
           <div class="top"><span class="k">${title}</span>${chip(ok, ok ? "Boa" : "Abaixo da meta")}</div>
-          <div class="vrow"><span class="v">${pct1(simple)}</span>${marginChip(simple, T.margin)}</div>
+          <div class="vrow"><span class="v">${pct1(main)}</span>${marginChip(main, T.margin)}</div>
           <ul>
-            <li>Média simples dos dias · meta <b>${pctT(T.margin)}</b></li>
-            <li>Ponderada pelo gasto: <b>${pct1(w)}</b> (${w >= T.margin ? "na meta" : "abaixo da meta"})</li>
-            <li>Dias na meta: <b>${dOk} de ${n}</b></li>
+            ${lines}
+            <li>Dias na meta: <b>${dOk} de ${nd}</b></li>
           </ul></div>`;
       };
       goals = `<div class="goals">
@@ -569,14 +584,14 @@
           <ul>
             <li>Média por dia · meta <b>${usd0.format(T.dailySpend)}/dia</b> (atingido <b>${dec1(avg / T.dailySpend * 100)}%</b>)</li>
             <li>Total: <b>${usd.format(total)}</b> de ${usd.format(targetTotal)} (${n} dias)</li>
-            <li>Dias na meta: <b>${spendDays} de ${n}</b></li>
+            <li>Dias na meta: <b>${spendDays} de ${nd}</b></li>
           </ul>
         </div>
         ${mCard("Margin %", "m1")}
         ${mCard("Margin % 2", "m2")}
       </div>`;
-      const mean1 = mean(data.map(d => d.m1)), mean2 = mean(data.map(d => d.m2));
-      tableRows = `<tr class="total"><td>Geral (${n} dias)</td><td>${usd.format(total)}${spendChip(total, targetTotal)}</td><td>${pct1(mean1)}${marginChip(mean1, T.margin)}</td><td>${pct1(mean2)}${marginChip(mean2, T.margin)}</td></tr>` +
+      const mean1 = useSot ? SOT.m1 : mean(data.map(d => d.m1)), mean2 = useSot ? SOT.m2 : mean(data.map(d => d.m2));
+      tableRows = `<tr class="total"><td>Geral (${n} dias${useSot ? ", soma dos conjuntos" : ""})</td><td>${usd.format(total)}${spendChip(total, targetTotal)}</td><td>${pct1(mean1)}${marginChip(mean1, T.margin)}</td><td>${pct1(mean2)}${marginChip(mean2, T.margin)}</td></tr>` +
         data.map(d => `<tr><td>${fmt.format(parse(d.date))}</td><td>${usd.format(d.spend)}${spendChip(d.spend, T.dailySpend)}</td><td>${pct1(d.m1)}${marginChip(d.m1, T.margin)}</td><td>${pct1(d.m2)}${marginChip(d.m2, T.margin)}</td></tr>`).join("");
       legendSpend = `<div class="legend"><span><i class="dash"></i>Meta ${usd0.format(T.dailySpend)}/dia</span></div>`;
       legendMargin = `<span><i class="dash"></i>Meta ${pctT(T.margin)}</span>`;
@@ -585,7 +600,7 @@
     }
 
     el.innerHTML = `
-      <div class="section-head"><h2>${esc(r.name)}</h2><span class="hint">${fmt.format(r.s)} a ${fmt.format(r.e)} · dados do CSV</span></div>
+      <div class="section-head"><h2>${esc(r.name)}</h2><span class="hint">${fmt.format(r.s)} a ${fmt.format(r.e)} · ${useSot ? "totais: soma dos conjuntos de anúncios" : "dados do CSV"}</span></div>
       ${goals}
       <div class="chart-card">
         <div class="chart-head"><h3>Valor gasto por dia (USD)</h3>${legendSpend}</div>
@@ -602,6 +617,7 @@
           <thead><tr><th>Dia</th><th>Valor gasto (USD)</th><th>Margin %</th><th>Margin % 2</th></tr></thead>
           <tbody>${tableRows}</tbody>
         </table></div>
+        ${useSot ? `<p class="note">Geral: soma dos conjuntos de anúncios (fonte da verdade), margins ponderadas pelo gasto. Os dias vêm do CSV diário, que soma ${usd.format(dTotal)} (diferença de ${usd.format(Math.abs(total - dTotal))}).</p>` : ""}
       </div>`;
     document.getElementById("details").appendChild(el);
     mountChart(el.querySelector(`#c-spend-${idx}`), {
@@ -693,20 +709,18 @@
   const GOAL = (reports.find(r => r.targets) || {}).targets || null;
   const roasF = v => v == null ? "—" : v.toFixed(2).replace(".", ",");
   const mCell = v => v == null ? "—" : pct1(v) + (GOAL ? marginChip(v, GOAL.margin) : "");
-  const wavg = (list, k) => { const ok = list.filter(a => a[k] != null), d = sum(ok.map(a => a.spend)); return d ? sum(ok.map(a => a.spend * a[k])) / d : null; };
-  const agg = list => ({ n: list.length, spend: sum(list.map(a => a.spend)), roasWeb: wavg(list, "roasWeb"), roasOff: wavg(list, "roasOff"), m1: wavg(list, "m1"), m2: wavg(list, "m2") });
   const baseName = a => a.name.split(/_?OPT_\d/i)[0];
   const lastEntry = id => entries.filter(e => e.adset.id === id).sort((a, b) => (b.date - a.date) || (b.mins - a.mins))[0];
   const groups = new Map();
   ADSETS.forEach(a => { if (!groups.has(a.campaignId)) groups.set(a.campaignId, { id: a.campaignId, name: a.campaign, list: [] }); groups.get(a.campaignId).list.push(a); });
-  const camps = [...groups.values()].map(g => ({ ...g, a: agg(g.list) })).sort((x, y) => y.a.spend - x.a.spend);
-  const all = agg(ADSETS);
+  const camps = [...groups.values()].map(g => ({ ...g, a: aggBy(g.list) })).sort((x, y) => y.a.spend - x.a.spend);
+  const all = SOT;
   const repCsv = reports.find(r => r.fromCsv);
   const repTotal = repCsv ? sum(repCsv.rows.map(x => x[1])) : null;
 
   document.getElementById("camp-count").textContent = camps.length;
   document.getElementById("camp-tiles").innerHTML = [
-    ["Valor gasto", usd.format(all.spend), repTotal != null ? "Relatório 1: " + usd.format(repTotal) : ""],
+    ["Valor gasto", usd.format(all.spend), "soma dos conjuntos · fonte da verdade"],
     ["Campanhas", String(camps.length), ""],
     ["Conjuntos de anúncios", String(ADSETS.length), ""],
     ["ROAS site", roasF(all.roasWeb), "offline: " + roasF(all.roasOff) + " · ponderado pelo gasto"]
@@ -724,7 +738,7 @@
     campRow("Todas as campanhas", all, "", "total") + camps.map(c => campRow(campShort(c.name), c.a, c.name)).join("") + `</tbody>`;
   document.getElementById("camp-note").textContent =
     "ROAS e Margin % por campanha são médias ponderadas pelo gasto dos conjuntos. A base da Margin % não foi informada, então a margin agregada é uma aproximação." +
-    (repTotal != null ? " Soma dos conjuntos " + usd.format(all.spend) + " contra " + usd.format(repTotal) + " no Relatório 1 (diferença de " + usd.format(Math.abs(all.spend - repTotal)) + ")." : "");
+    (repTotal != null ? " Os dados diários do Relatório 1 somam " + usd.format(repTotal) + " (diferença de " + usd.format(Math.abs(all.spend - repTotal)) + ")." : "");
 
   const sel = document.getElementById("f-camp");
   sel.innerHTML = `<option value="all">Todas as campanhas (${ADSETS.length})</option>` + camps.map(c => `<option value="${esc(c.id)}">${esc(campShort(c.name))} (${c.a.n})</option>`).join("");
