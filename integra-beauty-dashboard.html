@@ -1,9 +1,9 @@
-<title>Integra Beauty Relatórios</title>
+<title>Integra Beauty Reports</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
 <style>
-  /* Layout: cabeçalho + abas. Relatórios: indicadores, períodos, lista, metas (cartões, 2 gráficos com linha de meta, tabela por dia). Otimizações: log agrupado por dia. */
+  /* Layout: header, Zones/States switch, 4 tabs. Reports: report list + timeline + targets (2 rows of cards) + charts + daily table. Campaigns: tables. Optimizations: day-grouped log. Team message: copyable text. */
   :root {
     --bg: #f6f3f5;
     --surface: #ffffff;
@@ -92,12 +92,18 @@
   header { display: flex; flex-direction: column; gap: 8px; }
   header p { margin: 0; color: var(--muted); max-width: 62ch; }
 
-  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+  .bar-top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; border-bottom: 1px solid var(--line); }
+  .tabs { display: flex; gap: 4px; overflow-x: auto; }
   .tab { appearance: none; background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; padding: 10px 14px; font: inherit; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; }
   .tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
   .tab:hover { color: var(--fg); }
   .tab:focus-visible { outline: 3px solid var(--fg); outline-offset: -3px; border-radius: 6px; }
   .tab .count { display: inline-block; min-width: 20px; text-align: center; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; }
+  .scope { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); margin-bottom: 8px; }
+  .scope[hidden] { display: none; }
+  .scope button { appearance: none; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 600; color: var(--muted); padding: 5px 14px; border-radius: 7px; cursor: pointer; }
+  .scope button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+  .scope button:focus-visible { outline: 3px solid var(--fg); outline-offset: 1px; }
 
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
   .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
@@ -118,12 +124,10 @@
   .tl-tick.first { transform: none; }
   .tl-row { position: relative; height: 34px; border-bottom: 1px dashed var(--line); }
   .tl-row:last-child { border-bottom: 0; }
-  .tl-bar { position: absolute; top: 7px; height: 20px; border-radius: 4px; background: var(--accent); min-width: 6px; }
-  .tl-bar.is-live { background: var(--ok); }
+  .tl-bar { position: absolute; top: 7px; height: 20px; border-radius: 4px; background: var(--accent); min-width: 6px; color: var(--accent-fg); font-size: 11px; font-weight: 600; line-height: 20px; padding-inline: 8px; white-space: nowrap; overflow: hidden; }
   .tl-grid { position: absolute; top: 22px; bottom: 0; width: 1px; background: var(--line); opacity: .6; }
   .tl-today { position: absolute; top: 22px; bottom: 0; width: 2px; background: var(--warn); }
   .tl-today span { position: absolute; top: -22px; right: 6px; font-size: 11px; color: var(--warn); font-weight: 600; }
-  .tl-empty { color: var(--muted); font-size: 14px; padding-block: 8px; }
 
   .list { display: flex; flex-direction: column; gap: 10px; }
   .report { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; grid-template-columns: 1fr auto; gap: 12px 16px; align-items: center; }
@@ -131,11 +135,7 @@
   .report .name { font-weight: 600; font-size: 16px; }
   .meta { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
   .meta b { color: var(--fg); font-weight: 500; }
-  .pill { display: inline-flex; align-items: center; width: fit-content; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
-  .pill.ok { background: var(--ok-soft); color: var(--ok); }
-  .pill.warn { background: var(--warn-soft); color: var(--warn); }
-  .pill.info { background: var(--info-soft); color: var(--info); }
-  .pill.off { background: var(--accent-soft); color: var(--accent); }
+  .pill { display: inline-flex; align-items: center; width: fit-content; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: var(--info-soft); color: var(--info); }
   .open { background: var(--accent); color: var(--accent-fg); text-decoration: none; font-weight: 600; padding: 10px 16px; border-radius: 8px; white-space: nowrap; }
   .open:hover { filter: brightness(1.08); }
   .open:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
@@ -149,6 +149,7 @@
   .chip.acc { background: var(--accent-soft); color: var(--accent); }
 
   .detail { display: flex; flex-direction: column; gap: 14px; }
+  .sub { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; align-items: baseline; margin-top: 6px; }
   .goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 12px; }
   .goal { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .goal .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -173,9 +174,19 @@
   .tbl-scroll { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
   th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  th { color: var(--muted); font-weight: 600; font-size: 12px; position: sticky; top: 0; background: var(--surface); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; background: var(--surface); }
   tr.total td { background: var(--row); font-weight: 600; }
   td .chip { margin-left: 6px; }
+  .camp { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .share { display: inline-flex; align-items: center; gap: 8px; }
+  .bar { display: inline-block; width: 56px; height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--s1); border-radius: 4px; }
+  .tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+  select { font: inherit; font-size: 13px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; max-width: 100%; }
+  select:focus-visible, .sort:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
+  .sort { appearance: none; background: none; border: 0; padding: 0; font: inherit; color: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .sort:hover { color: var(--fg); }
+  .note { margin: 0; font-size: 12px; color: var(--muted); }
 
   .how { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
   .how code, .log-raw { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--fg); overflow-wrap: anywhere; }
@@ -190,16 +201,16 @@
   .log-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
   .log-top b { font-weight: 600; }
   .log-meta { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .camp { font-size: 12px; font-weight: 600; color: var(--muted); }
-  .share { display: inline-flex; align-items: center; gap: 8px; }
-  .bar { display: inline-block; width: 56px; height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; }
-  .bar i { display: block; height: 100%; background: var(--s1); border-radius: 4px; }
-  .tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
-  select { font: inherit; font-size: 13px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; max-width: 100%; }
-  select:focus-visible, .sort:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
-  .sort { appearance: none; background: none; border: 0; padding: 0; font: inherit; color: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; }
-  .sort:hover { color: var(--fg); }
-  .note { margin: 0; font-size: 12px; color: var(--muted); }
+
+  .msg-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .msg-card textarea { width: 100%; box-sizing: border-box; min-height: 420px; resize: vertical; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.55; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; white-space: pre; overflow: auto; }
+  .msg-card textarea:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
+  .msg-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+  .btn { appearance: none; border: 0; background: var(--accent); color: var(--accent-fg); font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 8px; cursor: pointer; }
+  .btn:hover { filter: brightness(1.08); }
+  .btn:focus-visible { outline: 3px solid var(--fg); outline-offset: 2px; }
+  .status { font-size: 13px; color: var(--ok); font-weight: 600; min-height: 1.4em; }
+
   @media (max-width: 560px) {
     .report { grid-template-columns: 1fr; } .open { text-align: center; }
     .log-item { grid-template-columns: 1fr; }
@@ -209,286 +220,319 @@
 
 <div class="wrap">
   <header>
-    <span class="eyebrow">Meta Ads · Time Zones</span>
+    <span class="eyebrow">Meta Ads · Time Zones &amp; States</span>
     <h1>Integra Beauty</h1>
-    <p>Relatórios salvos do Meta Ads, desempenho contra as metas, dados por campanha e por conjunto de anúncios, e o log de otimizações.</p>
+    <p>Saved Meta Ads reports, performance against targets, campaign and ad set data, and the optimization log. Data as of Oct 9, 2026.</p>
   </header>
 
-  <div class="tabs" role="tablist" aria-label="Seções">
-    <button class="tab" role="tab" id="tab-rel" aria-controls="panel-rel" aria-selected="true">Relatórios</button>
-    <button class="tab" role="tab" id="tab-camp" aria-controls="panel-camp" aria-selected="false" tabindex="-1">Campanhas<span class="count" id="camp-count"></span></button>
-    <button class="tab" role="tab" id="tab-opt" aria-controls="panel-opt" aria-selected="false" tabindex="-1">Otimizações<span class="count" id="opt-count"></span></button>
+  <div class="bar-top">
+    <div class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" id="tab-rel" aria-controls="panel-rel" aria-selected="true">Reports</button>
+      <button class="tab" role="tab" id="tab-camp" aria-controls="panel-camp" aria-selected="false" tabindex="-1">Campaigns<span class="count" id="camp-count"></span></button>
+      <button class="tab" role="tab" id="tab-opt" aria-controls="panel-opt" aria-selected="false" tabindex="-1">Optimizations<span class="count" id="opt-count"></span></button>
+      <button class="tab" role="tab" id="tab-msg" aria-controls="panel-msg" aria-selected="false" tabindex="-1">Team message</button>
+    </div>
+    <div class="scope" id="scope" role="group" aria-label="Campaign group">
+      <button data-scope="zones" aria-pressed="true">Zones</button>
+      <button data-scope="states" aria-pressed="false">States</button>
+    </div>
   </div>
 
-  <div class="panel" id="panel-rel" role="tabpanel" aria-labelledby="tab-rel">
-    <div class="tiles" id="tiles"></div>
-
-    <section>
-      <div class="section-head"><h2>Períodos</h2><span class="hint" id="tl-hint"></span></div>
-      <div class="timeline"><div class="tl-scroll"><div class="tl-inner" id="timeline"></div></div></div>
-    </section>
-
-    <section>
-      <div class="section-head"><h2>Relatórios</h2><span class="hint" id="count"></span></div>
-      <div class="list" id="list"></div>
-    </section>
-
-    <div id="details" style="display:flex;flex-direction:column;gap:28px;min-width:0"></div>
-  </div>
-
-  <div class="panel" id="panel-camp" role="tabpanel" aria-labelledby="tab-camp" hidden>
-    <div class="tiles" id="camp-tiles"></div>
-    <section>
-      <div class="section-head"><h2>Por campanha</h2><span class="hint" id="camp-src"></span></div>
-      <div class="chart-card">
-        <div class="tbl-scroll"><table id="camp-table"></table></div>
-        <p class="note" id="camp-note"></p>
-      </div>
-    </section>
-    <section>
-      <div class="section-head"><h2>Por conjunto de anúncios</h2><span class="hint" id="ad-count"></span></div>
-      <div class="chart-card">
-        <div class="tools"><label for="f-camp">Campanha</label><select id="f-camp"></select></div>
-        <div class="tbl-scroll"><table><thead id="ad-thead"></thead><tbody id="ad-tbody"></tbody></table></div>
-      </div>
-    </section>
-  </div>
-
-  <div class="panel" id="panel-opt" role="tabpanel" aria-labelledby="tab-opt" hidden>
-    <div class="tiles" id="opt-tiles"></div>
-    <div class="how" id="opt-how"></div>
-    <div id="opt-log" style="display:flex;flex-direction:column;gap:20px"></div>
-  </div>
+  <div class="panel" id="panel-rel" role="tabpanel" aria-labelledby="tab-rel"></div>
+  <div class="panel" id="panel-camp" role="tabpanel" aria-labelledby="tab-camp" hidden></div>
+  <div class="panel" id="panel-opt" role="tabpanel" aria-labelledby="tab-opt" hidden></div>
+  <div class="panel" id="panel-msg" role="tabpanel" aria-labelledby="tab-msg" hidden></div>
 </div>
 
 <script>
-  // Para incluir um relatório, adicione um item em REPORTS.
-  // rows (CSV): [dia AAAA-MM-DD, valor gasto USD, Margin %, Margin % 2]. O período vem do primeiro e do último dia.
-  // targets: dailySpend = meta de investimento por dia (USD); margin = margin mínima para ser considerada boa (0.20 = 20%); roas = ROAS a alcançar (site e offline).
-  // dynamic: true quando o período do relatório no Meta é dinâmico.
-  // sot: "adsets" = totais gerais (gasto e margins) calculados a partir de ADSETS, a fonte da verdade.
-  const REPORTS = [
-    {
-      name: "Relatório 1 (Zones)",
-      url: "https://fb.me/2nXa3gFjgZlkyl4",
-      dynamic: true,
-      since: null, until: null,
-      targets: { dailySpend: 10000, margin: 0.20, roas: 2.5 },
-      sot: "adsets", // totais gerais vêm da soma dos conjuntos de anúncios (ADSETS); os dias vêm das linhas abaixo
-      rows: [
-        ["2026-09-17", 2029.91, 0.21964381, 0.14538772],
-        ["2026-09-18", 8657.39, 0.14667308, 0.14880589],
-        ["2026-09-19", 7784.69, 0.20260631, 0.24116167],
-        ["2026-09-20", 1818.94, 0.26581915, 0.18992472],
-        ["2026-09-21", 4020.46, 0.27676945, 0.25964907],
-        ["2026-09-22", 3402.79, 0.21965878, 0.2624916],
-        ["2026-09-23", 4180.22, 0.24428562, 0.21819456],
-        ["2026-09-24", 10582.41, 0.15739256, 0.14418624],
-        ["2026-09-25", 12721.19, 0.16715873, 0.13200171],
-        ["2026-09-26", 12475.71, 0.21697717, 0.23039405],
-        ["2026-09-27", 8605.28, 0.18212405, 0.17556736],
-        ["2026-09-28", 13953.71, 0.22451621, 0.23808007],
-        ["2026-09-29", 9081.94, 0.17772303, 0.18401678],
-        ["2026-09-30", 12687.22, 0.19021804, 0.21839594],
-        ["2026-10-01", 14510.89, 0.23459064, 0.18776273],
-        ["2026-10-02", 16871.92, 0.17367778, 0.06894651],
-        ["2026-10-03", 13445.06, 0.14352917, 0.07631773],
-        ["2026-10-04", 9316.42, 0.23073658, 0.1172454],
-        ["2026-10-05", 9306.31, 0.17493919, 0.13321975],
-        ["2026-10-06", 5628.42, 0.26420774, 0.25644231],
-        ["2026-10-07", 3458.26, 0.3205049, 0.2845265]
-      ]
+  // ---------------------------------------------------------------------------
+  // DATA
+  // report.rows (daily CSV): [day YYYY-MM-DD, spend USD, Margin %, Margin % 2]. The period comes from the first and last day.
+  // report.targets: dailySpend = daily spend target (USD); margin = minimum margin to count as good; roas = ROAS to reach.
+  // adsets (ad set CSV export): source of truth for the totals of its window (source.since to source.until).
+  // history: ad sets from earlier exports, used only to keep optimization entries that later renames overwrote.
+  // Ad set names carry the optimization: NAME_OPT_MM/DD/YYYY+2@h:mmAM  (+2 / -2 = bid cap change, $+N / $-N = budget change).
+  // ---------------------------------------------------------------------------
+  const DATA = {
+    zones: {
+      label: "Zones",
+      report: {
+        name: "Zones report", url: "https://fb.me/2nXa3gFjgZlkyl4", dynamic: true,
+        targets: { dailySpend: 10000, margin: 0.20, roas: 2.5 },
+        rows: [
+          ["2026-09-17", 2029.91, 0.21964381, 0.14538772],
+          ["2026-09-18", 8657.39, 0.14667308, 0.14880589],
+          ["2026-09-19", 7784.69, 0.20260631, 0.24116167],
+          ["2026-09-20", 1818.94, 0.26581915, 0.18992472],
+          ["2026-09-21", 4020.46, 0.27676945, 0.25964907],
+          ["2026-09-22", 3402.79, 0.21965878, 0.2624916],
+          ["2026-09-23", 4180.22, 0.24428562, 0.21819456],
+          ["2026-09-24", 10582.41, 0.15739256, 0.14418624],
+          ["2026-09-25", 12721.19, 0.16715873, 0.13200171],
+          ["2026-09-26", 12475.71, 0.21697717, 0.23039405],
+          ["2026-09-27", 8605.28, 0.18212405, 0.17556736],
+          ["2026-09-28", 13953.71, 0.22451621, 0.23808007],
+          ["2026-09-29", 9081.94, 0.17772303, 0.18401678],
+          ["2026-09-30", 12687.22, 0.19021804, 0.21839594],
+          ["2026-10-01", 14510.89, 0.23459064, 0.18776273],
+          ["2026-10-02", 16871.92, 0.17367778, 0.06894651],
+          ["2026-10-03", 13445.06, 0.14352917, 0.07631773],
+          ["2026-10-04", 9316.42, 0.23073658, 0.1172454],
+          ["2026-10-05", 9306.31, 0.17493919, 0.13321975],
+          ["2026-10-06", 5628.56, 0.26419782, 0.25643238],
+          ["2026-10-07", 3465.61, 0.31987689, 0.2838985],
+          ["2026-10-08", 5136.1, 0.20578026, -0.00661194]
+        ]
+      },
+      source: { label: "Langehair.com · Ad sets", since: "2026-10-02", until: "2026-10-08" },
+      adsets: [
+      {"id": "120254064705500120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "EST_OPT_OPT_10/09/2026+2@9:14AM", "bid": 59, "budget": 9000.0, "created": "2026-09-17", "spend": 1383.57, "roasWeb": 2.83004835, "roasOff": 2.60575179, "m1": 0.32252265, "m2": 0.23915803},
+      {"id": "120254064761150120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "CENTRAL_OPT_10/09/2026+2@9:14AM", "bid": 67, "budget": 9000.0, "created": "2026-09-17", "spend": 1345.61, "roasWeb": 1.99031666, "roasOff": 1.73525762, "m1": 0.1039396, "m2": 0.06184774},
+      {"id": "120254064914820120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "MOUNTAIN_OPT_10/09/2026+2@9:14AM", "bid": 69, "budget": 9000.0, "created": "2026-09-17", "spend": 614.3, "roasWeb": 1.51403223, "roasOff": 1.51403223, "m1": -0.00739729, "m2": -0.05797413},
+      {"id": "120254064951700120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "PST_OPT_OPT_10/09/2026+2@9:14AM", "bid": 65, "budget": 7647.57, "created": "2026-09-17", "spend": 652.83, "roasWeb": 1.44040562, "roasOff": 1.1625538, "m1": 0.02784099, "m2": -0.04924814},
+      {"id": "120254169990170120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "1DC_MOUNTAIN_OPT_10/09/2026+2@9:14AM", "bid": 69, "budget": 5000.0, "created": "2026-09-24", "spend": 1619.17, "roasWeb": 1.79415997, "roasOff": 1.70780709, "m1": 0.05846371, "m2": 0.02298756},
+      {"id": "120254170111810120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "1DC_CENTRAL_OPT_10/09/2026+2@9:14AM", "bid": 67, "budget": 5000.0, "created": "2026-09-24", "spend": 2613.72, "roasWeb": 1.7771873, "roasOff": 1.51123303, "m1": 0.12242011, "m2": -0.04586368},
+      {"id": "120254170199500120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "1DC_EST_OPT_10/09/2026+2@9:14AM", "bid": 59, "budget": 5000.0, "created": "2026-09-24", "spend": 54.98, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
+      {"id": "120254170490490120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "1DC_PST_OPT_10/09/2026+2@9:14AM", "bid": 67, "budget": 7647.57, "created": "2026-09-24", "spend": 1521.84, "roasWeb": 1.80902066, "roasOff": 0.0, "m1": 0.0755928, "m2": -0.02592407},
+      {"id": "120254232562860120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "MOUNTAIN_OPT_10/09/2026+2@9:20AM", "bid": 66, "budget": 5000.0, "created": "2026-09-29", "spend": 2883.76, "roasWeb": 2.48248467, "roasOff": 2.35855619, "m1": 0.19504281, "m2": 0.09938412},
+      {"id": "120254232600930120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "CENTRAL_OPT_10/09/2026+2@9:20AM", "bid": 62, "budget": 5000.0, "created": "2026-09-29", "spend": 6655.9, "roasWeb": 2.262848, "roasOff": 2.12207665, "m1": 0.17722187, "m2": 0.11753177},
+      {"id": "120254232600970120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "PST_OPT_10/09/2026+2@9:20AM", "bid": 69, "budget": 5000.0, "created": "2026-09-29", "spend": 9297.42, "roasWeb": 2.71903711, "roasOff": 2.70992168, "m1": 0.25221489, "m2": 0.16899268},
+      {"id": "120254232610240120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "EST_OPT_10/09/2026+2@9:20AM", "bid": 63, "budget": 5000.0, "created": "2026-09-29", "spend": 8353.31, "roasWeb": 2.79038968, "roasOff": 2.80841607, "m1": 0.27137383, "m2": 0.1989846},
+      {"id": "120254248010750120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_PST_OPT_10/09/2026+2@9:20AM", "bid": 62, "budget": 5000.0, "created": "2026-09-30", "spend": 740.8, "roasWeb": 2.00818035, "roasOff": 1.6337473, "m1": -0.03202345, "m2": -0.03899413},
+      {"id": "120254248624820120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_EST_OPT_10/09/2026+2@9:20AM", "bid": 61, "budget": 5000.0, "created": "2026-09-30", "spend": 1890.54, "roasWeb": 2.37406773, "roasOff": 2.36902155, "m1": 0.03917768, "m2": 0.12428842},
+      {"id": "120254258810740120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_OPT_10/09/2026+2@9:20AM", "bid": 64, "budget": 5000.0, "created": "2026-10-01", "spend": 3582.29, "roasWeb": 1.68053675, "roasOff": 1.646257, "m1": 0.06407792, "m2": -0.1272788},
+      {"id": "120254258897230120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_MOUNTAIN_OPT_10/09/2026+2@9:20AM", "bid": 64, "budget": 5000.0, "created": "2026-10-01", "spend": 915.08, "roasWeb": 2.3832124, "roasOff": 2.3832124, "m1": 0.14090048, "m2": 0.14295475},
+      {"id": "120254356363220120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "7DC_CENTRAL_OPT_10/09/2026+2@9:20AM", "bid": 62, "budget": 2500.0, "created": "2026-10-08", "spend": 20.79, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
+      {"id": "120254356363670120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "7DC_PST_OPT_10/09/2026+2@9:20AM", "bid": 69, "budget": 2500.0, "created": "2026-10-08", "spend": 897.58, "roasWeb": 1.9974487, "roasOff": 2.06608882, "m1": 0.08554998, "m2": -0.28816925},
+      {"id": "120254356413870120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "7DC_MOUNTAIN_OPT_10/09/2026+2@9:20AM", "bid": 66, "budget": 2500.0, "created": "2026-10-08", "spend": 1.98, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
+      {"id": "120254356413890120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "7DC_EST_OPT_10/09/2026+2@9:20AM", "bid": 63, "budget": 2500.0, "created": "2026-10-08", "spend": 76.17, "roasWeb": 0.80635421, "roasOff": 0.80635421, "m1": 0.37121459, "m2": -0.63073917},
+      {"id": "120254356500400120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_1DV_MOUNTAIN_OPT_10/09/2026+2@9:20AM", "bid": 68, "budget": 2500.0, "created": "2026-10-08", "spend": 10.89, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
+      {"id": "120254356500410120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_1DV_EST_OPT_10/09/2026+2@9:20AM", "bid": 65, "budget": 2500.0, "created": "2026-10-08", "spend": 277.03, "roasWeb": 1.8071689, "roasOff": 1.70559145, "m1": 0.07318632, "m2": -0.01052653},
+      {"id": "120254356555360120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_1DV_CENTRAL_OPT_10/09/2026+2@9:20AM", "bid": 65, "budget": 2500.0, "created": "2026-10-08", "spend": 23.36, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
+      {"id": "120254356555740120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_1DV_PST_OPT_10/09/2026+2@9:20AM", "bid": 71, "budget": 2500.0, "created": "2026-10-08", "spend": 32.79, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
+      {"id": "120254130269790120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "EST_OPT_10/09/2026+2@9:28AM", "bid": 59, "budget": 5000.0, "created": "2026-09-22", "spend": 126.74, "roasWeb": 1.98011677, "roasOff": 2.6028878, "m1": 0.59894007, "m2": -0.13045904},
+      {"id": "120254130269890120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "CENTRAL_OPT_10/09/2026+2@9:28AM", "bid": 63, "budget": 5000.0, "created": "2026-09-22", "spend": 1052.43, "roasWeb": 1.90779434, "roasOff": 2.02685214, "m1": 0.16747019, "m2": 0.03002261},
+      {"id": "120254130301270120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "PST_OPT_10/09/2026+2@9:28AM", "bid": 69, "budget": 5000.0, "created": "2026-09-22", "spend": 3835.98, "roasWeb": 2.39329715, "roasOff": 2.22541306, "m1": 0.25133869, "m2": 0.19840229},
+      {"id": "120254130301280120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "MOUNTAIN_OPT_10/09/2026+2@9:28AM", "bid": 71, "budget": 5000.0, "created": "2026-09-22", "spend": 1504.38, "roasWeb": 1.91429027, "roasOff": 2.07593161, "m1": 0.16185387, "m2": 0.01068122},
+      {"id": "120254131190280120", "campaignId": "120254131186170120", "campaign": "BIDCAP_ZONES_AXIA#FORCE#", "name": "EST_OPT_10/09/2026+2@9:29AM", "bid": 85, "budget": 5000.0, "created": "2026-09-22", "spend": 912.99, "roasWeb": 1.65689657, "roasOff": 1.67570291, "m1": 0.09000945, "m2": 0.0797763},
+      {"id": "120254131190630120", "campaignId": "120254131186170120", "campaign": "BIDCAP_ZONES_AXIA#FORCE#", "name": "CENTRAL_OPT_10/09/2026+2@9:29AM", "bid": 87, "budget": 5000.0, "created": "2026-09-22", "spend": 3779.03, "roasWeb": 2.32188948, "roasOff": 2.05006047, "m1": 0.22567465, "m2": 0.17799895},
+      {"id": "120254131223350120", "campaignId": "120254131186170120", "campaign": "BIDCAP_ZONES_AXIA#FORCE#", "name": "PST_OPT_10/09/2026+2@9:29AM", "bid": 83, "budget": 5000.0, "created": "2026-09-22", "spend": 437.71, "roasWeb": 1.28534875, "roasOff": 0.66311028, "m1": -0.12955689, "m2": -0.32187483},
+      {"id": "120254131223430120", "campaignId": "120254131186170120", "campaign": "BIDCAP_ZONES_AXIA#FORCE#", "name": "MOUNTAIN_OPT_10/09/2026+2@9:29AM", "bid": 87, "budget": 5000.0, "created": "2026-09-22", "spend": 30.9, "roasWeb": 5.91909385, "roasOff": 3.76440129, "m1": 0.26724986, "m2": 0.52722799},
+      {"id": "120254166444120120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "1DC_CENTRAL_OPT_10/09/2026+2@9:28AM", "bid": 67, "budget": 5000.0, "created": "2026-09-24", "spend": 857.53, "roasWeb": 2.1233193, "roasOff": 2.1233193, "m1": 0.19182122, "m2": 0.19182122},
+      {"id": "120254168181360120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "1DC_EST_OPT_10/09/2026+2@9:28AM", "bid": 59, "budget": 5000.0, "created": "2026-09-24", "spend": 0.02, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
+      {"id": "120254169325020120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "1DC_MOUNTAIN_OPT_10/09/2026+2@9:28AM", "bid": 69, "budget": 5000.0, "created": "2026-09-24", "spend": 0.39, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
+      {"id": "120254169662170120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "1DC_PST_OPT_10/09/2026+2@9:28AM", "bid": 67, "budget": 5000.0, "created": "2026-09-24", "spend": 729.62, "roasWeb": 2.27386859, "roasOff": 2.43496615, "m1": 0.15102528, "m2": 0.13032078},
+      {"id": "120254181575700120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "1DC_PST_OPT_10/09/2026+2@9:30AM", "bid": 67, "budget": 5000.0, "created": "2026-09-25", "spend": 0.18, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
+      {"id": "120254181575710120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "1DC_MOUNTAIN_OPT_10/09/2026+2@9:30AM", "bid": 69, "budget": 5000.0, "created": "2026-09-25", "spend": 0.23, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
+      {"id": "120254181575720120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "1DC_CENTRAL_OPT_10/09/2026+2@9:30AM", "bid": 67, "budget": 5000.0, "created": "2026-09-25", "spend": 0.35, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
+      {"id": "120254181576380120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "1DC_EST_OPT_10/09/2026+2@9:30AM", "bid": 62, "budget": 5000.0, "created": "2026-09-25", "spend": 0.01, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
+      {"id": "120254181600040120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "MOUNTAIN_OPT_10/09/2026+2@9:30AM", "bid": 71, "budget": 5000.0, "created": "2026-09-25", "spend": 2144.71, "roasWeb": 2.51139315, "roasOff": 2.6128008, "m1": 0.26055427, "m2": 0.10394507},
+      {"id": "120254181600060120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "CENTRAL_OPT_10/09/2026+2@9:30AM", "bid": 69, "budget": 5000.0, "created": "2026-09-25", "spend": 1522.82, "roasWeb": 2.68608897, "roasOff": 2.74566265, "m1": 0.30991363, "m2": 0.20771655},
+      {"id": "120254181600470120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "PST_OPT_10/09/2026+2@9:30AM", "bid": 63, "budget": 5000.0, "created": "2026-09-25", "spend": 68.15, "roasWeb": 0.64020543, "roasOff": 0.49831255, "m1": -1.23355489, "m2": -1.22988769},
+      {"id": "120254181600650120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "EST_OPT_10/09/2026+2@9:30AM", "bid": 65, "budget": 5000.0, "created": "2026-09-25", "spend": 697.23, "roasWeb": 2.43384536, "roasOff": 2.66751287, "m1": 0.22028345, "m2": -0.00592828}
+    ],
+      history: [
+      {"id": "120254064705500120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "EST_OPT_10/07/2026+2@8:37AM", "created": "2026-09-17"},
+      {"id": "120254064761150120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "CENTRAL", "created": "2026-09-17"},
+      {"id": "120254064914820120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "MOUNTAIN", "created": "2026-09-17"},
+      {"id": "120254064951700120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "PST_OPT_10/08/2026-2@9:41AM", "created": "2026-09-17"},
+      {"id": "120254169990170120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "1DC_MOUNTAIN", "created": "2026-09-24"},
+      {"id": "120254170111810120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "1DC_CENTRAL", "created": "2026-09-24"},
+      {"id": "120254170199500120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "1DC_EST_OPT_10/07/2026+2@8:39AM", "created": "2026-09-24"},
+      {"id": "120254170490490120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "1DC_PST", "created": "2026-09-24"},
+      {"id": "120254232562860120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "MOUNTAIN_OPT_10/08/2026+2@11:22AM", "created": "2026-09-29"},
+      {"id": "120254232600930120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "CENTRAL_OPT_10/08/2026+2@11:22AM", "created": "2026-09-29"},
+      {"id": "120254232600970120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "PST_OPT_10/08/2026+2@11:24AM", "created": "2026-09-29"},
+      {"id": "120254232610240120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "EST_OPT_10/08/2026+2@11:24AM", "created": "2026-09-29"},
+      {"id": "120254248010750120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_PST_OPT_10/08/2026+2@11:24AM", "created": "2026-09-30"},
+      {"id": "120254248624820120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_EST_OPT_10/08/2026+2@11:23AM", "created": "2026-09-30"},
+      {"id": "120254258810740120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_CENTRAL_OPT_10/08/2026+2@11:22", "created": "2026-10-01"},
+      {"id": "120254258897230120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_MOUNTAIN_OPT_10/08/2026+2@11:23AM", "created": "2026-10-01"},
+      {"id": "120254130269790120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "EST_OPT_10/07/2026+2@8:53AM", "created": "2026-09-22"},
+      {"id": "120254130269890120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "CENTRAL_OPT_10/08/2026-2@9:55AM", "created": "2026-09-22"},
+      {"id": "120254130301270120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "PST_OPT_10/08/2026+2@9:58AM", "created": "2026-09-22"},
+      {"id": "120254130301280120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "MOUNTAIN_OPT_10/08/2026+2@9:57AM", "created": "2026-09-22"},
+      {"id": "120254131190280120", "campaignId": "120254131186170120", "campaign": "BIDCAP_ZONES_AXIA#FORCE#", "name": "EST_OPT_10/07/2026-2@9:03AM", "created": "2026-09-22"},
+      {"id": "120254131190630120", "campaignId": "120254131186170120", "campaign": "BIDCAP_ZONES_AXIA#FORCE#", "name": "CENTRAL", "created": "2026-09-22"},
+      {"id": "120254131223350120", "campaignId": "120254131186170120", "campaign": "BIDCAP_ZONES_AXIA#FORCE#", "name": "PST_OPT_10/08/2026-2@10:02AM", "created": "2026-09-22"},
+      {"id": "120254131223430120", "campaignId": "120254131186170120", "campaign": "BIDCAP_ZONES_AXIA#FORCE#", "name": "MOUNTAIN", "created": "2026-09-22"},
+      {"id": "120254166444120120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "1DC_CENTRAL", "created": "2026-09-24"},
+      {"id": "120254168181360120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "1DC_EST_OPT_9/30/2026+2@1PM", "created": "2026-09-24"},
+      {"id": "120254169325020120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "1DC_MOUNTAIN", "created": "2026-09-24"},
+      {"id": "120254169662170120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "1DC_PST", "created": "2026-09-24"},
+      {"id": "120254181575700120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "1DC_PST", "created": "2026-09-25"},
+      {"id": "120254181575710120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "1DC_MOUNTAIN", "created": "2026-09-25"},
+      {"id": "120254181575720120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "1DC_CENTRAL", "created": "2026-09-25"},
+      {"id": "120254181576380120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "1DC_EST", "created": "2026-09-25"},
+      {"id": "120254181600040120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "MOUNTAIN_OPT_10/07/2026+2@8:55AM", "created": "2026-09-25"},
+      {"id": "120254181600060120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "CENTRAL_OPT_10/07/2026+2@8:56AM", "created": "2026-09-25"},
+      {"id": "120254181600470120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "PST_OPT_10/08/2026-2@10AM", "created": "2026-09-25"},
+      {"id": "120254181600650120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "EST_OPT_10/07/2026+2@8:57AM", "created": "2026-09-25"}
+    ]
+    },
+    states: {
+      label: "States",
+      report: {
+        name: "States report", url: null, dynamic: false,
+        targets: { margin: 0.20, roas: 2.5 },
+        rows: [
+          ["2026-09-15", 3900.07, 0.13145213, 0.16498396],
+          ["2026-09-16", 12660.56, 0.1444743, 0.15019387],
+          ["2026-09-17", 14886.36, 0.18420624, 0.22164279],
+          ["2026-09-18", 10894.41, 0.17829782, 0.2095324],
+          ["2026-09-19", 11260.64, 0.19300658, 0.20315471],
+          ["2026-09-20", 7121.33, 0.22429952, 0.23547989],
+          ["2026-09-21", 8116.17, 0.22965172, 0.2699226],
+          ["2026-09-22", 5433.28, 0.19874384, 0.20406964],
+          ["2026-09-23", 4524.75, 0.18150989, 0.21491852],
+          ["2026-09-24", 4393.35, 0.1855004, 0.24416349],
+          ["2026-09-25", 4275.28, 0.19371223, 0.210887],
+          ["2026-09-26", 4885.28, 0.18517518, 0.20960667],
+          ["2026-09-27", 4958.58, 0.13591483, 0.09504315],
+          ["2026-09-28", 3019.18, 0.13258445, 0.17858512],
+          ["2026-09-29", 2530.76, 0.10166881, 0.14842561],
+          ["2026-09-30", 4910.69, 0.18597999, 0.25175282],
+          ["2026-10-01", 3566.2, 0.20921906, 0.10914393],
+          ["2026-10-02", 4063.52, 0.18082777, 0.03028538],
+          ["2026-10-03", 2979.24, 0.01485833, -0.02494037],
+          ["2026-10-04", 2926.56, 0.20986707, 0.04744073],
+          ["2026-10-05", 2552.78, 0.13808256, 0.11121909],
+          ["2026-10-06", 2385.99, 0.11951308, 0.14261283],
+          ["2026-10-07", 2329.56, 0.15358134, 0.16478987],
+          ["2026-10-08", 2748.23, 0.21513585, -0.00511493]
+        ]
+      },
+      source: { label: "Langehair.com · Ad sets", since: "2026-10-02", until: "2026-10-08" },
+      adsets: [
+      {"id": "120254325904400120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "NORTH CAROLINA_OPT_10/09/2026+2@9:33AM", "bid": 65, "budget": 2500.0, "created": "2026-10-06", "spend": 96.63, "roasWeb": 3.3991514, "roasOff": 2.53389217, "m1": 0.20516958, "m2": 0.20516958},
+      {"id": "120254325984200120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "ADR_OPT_10/09/2026+2@9:33AM", "bid": 62, "budget": 2500.0, "created": "2026-10-06", "spend": 265.26, "roasWeb": 1.11026917, "roasOff": 1.80317424, "m1": -0.11921497, "m2": -0.33333333},
+      {"id": "120254326038120120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "ARIZONA_OPT_10/09/2026+2@9:33AM", "bid": 67, "budget": 2500.0, "created": "2026-10-06", "spend": 204.12, "roasWeb": 2.00676073, "roasOff": 2.00676073, "m1": 0.09330599, "m2": 0.09330599},
+      {"id": "120254326203720120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "OHIO_OPT_10/09/2026+4@9:33AM", "bid": 67, "budget": 2500.0, "created": "2026-10-06", "spend": 30.29, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
+      {"id": "120254326240320120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "CALIFORNIA_OPT_10/09/2026+2@9:33AM", "bid": 60, "budget": 2500.0, "created": "2026-10-06", "spend": 137.18, "roasWeb": 4.89881907, "roasOff": 4.34327161, "m1": 0.32397845, "m2": 0.1746823},
+      {"id": "120254326302680120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "VIRGINIA_OPT_10/09/2026+2@9:33AM", "bid": 67, "budget": 2500.0, "created": "2026-10-06", "spend": 95.49, "roasWeb": 1.73662164, "roasOff": 1.73662164, "m1": 0.18977266, "m2": 0.18977266},
+      {"id": "120254326335250120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "ILLINOIS_OPT_10/09/2026+2@9:33AM", "bid": 65, "budget": 2500.0, "created": "2026-10-06", "spend": 127.18, "roasWeb": 4.27810977, "roasOff": 2.62989464, "m1": 0.18147733, "m2": 0.22874892},
+      {"id": "120254326380950120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "NEW YORK_OPT_10/09/2026+2@9:33AM", "bid": 63, "budget": 2500.0, "created": "2026-10-06", "spend": 177.04, "roasWeb": 1.42707863, "roasOff": 1.42707863, "m1": -0.27488621, "m2": -0.07983376},
+      {"id": "120254326418240120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "COLORADO_OPT_10/09/2026+4@9:33AM", "bid": 69, "budget": 2500.0, "created": "2026-10-06", "spend": 31.26, "roasWeb": 3.08541267, "roasOff": 0.0, "m1": 0.27278383, "m2": -0.32410575},
+      {"id": "120254326474440120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "INDIANA_OPT_10/09/2026+2@9:33AM", "bid": 72, "budget": 2500.0, "created": "2026-10-06", "spend": 122.75, "roasWeb": 0.85213849, "roasOff": 0.85213849, "m1": -0.52581262, "m2": -1.17351816},
+      {"id": "120254326521390120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "CANADA_OPT_10/09/2026+2@9:33AM", "bid": 72, "budget": 2500.0, "created": "2026-10-06", "spend": 101.73, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
+      {"id": "120254326556690120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "NEW JERSEY_OPT_10/09/2026+4@9:33AM", "bid": 67, "budget": 2500.0, "created": "2026-10-06", "spend": 28.86, "roasWeb": 2.5973666, "roasOff": 0.0, "m1": 0.24319637, "m2": 0.24319637},
+      {"id": "120254049069790120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "NEW YORK", "bid": 58, "budget": 2500.0, "created": "2026-09-16", "spend": 470.66, "roasWeb": 1.23303446, "roasOff": 0.66037054, "m1": -0.15847607, "m2": -0.42032257},
+      {"id": "120254049143080120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "ILLINOIS", "bid": 60, "budget": 5028.4, "created": "2026-09-16", "spend": 1037.51, "roasWeb": 1.790296, "roasOff": 1.62613372, "m1": 0.13267114, "m2": -0.04136316},
+      {"id": "120254049165800120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "KENTUCKY", "bid": 65, "budget": 2500.0, "created": "2026-09-16", "spend": 1412.37, "roasWeb": 2.27855307, "roasOff": 2.01443673, "m1": 0.10812079, "m2": 0.19572675},
+      {"id": "120254049212620120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "VIRGINIA", "bid": 62, "budget": 2500.0, "created": "2026-09-16", "spend": 1015.13, "roasWeb": 1.97400333, "roasOff": 1.70178204, "m1": 0.18744729, "m2": 0.02208227},
+      {"id": "120254051555020120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "NEW JERSEY", "bid": 60, "budget": 3306.25, "created": "2026-09-16", "spend": 1108.48, "roasWeb": 2.38625866, "roasOff": 2.25657657, "m1": 0.21476152, "m2": 0.09893691},
+      {"id": "120254052666710120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "NORTH CAROLINA", "bid": 60, "budget": 5000.0, "created": "2026-09-16", "spend": 1141.77, "roasWeb": 2.08491202, "roasOff": 1.75559, "m1": 0.15518234, "m2": 0.01672765},
+      {"id": "120254052902080120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "NEBRASKA", "bid": 67, "budget": 3802.19, "created": "2026-09-16", "spend": 1034.25, "roasWeb": 2.20128596, "roasOff": 1.9097607, "m1": 0.17625226, "m2": 0.12506369},
+      {"id": "120254065717270120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "CANADA", "bid": 67, "budget": 3802.19, "created": "2026-09-17", "spend": 709.43, "roasWeb": 2.22991698, "roasOff": 1.91558011, "m1": 0.23030146, "m2": -0.28378541},
+      {"id": "120254324407810120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "TEXAS_OPT_10/09/2026+2@9:33AM", "bid": 63, "budget": 2500.0, "created": "2026-10-06", "spend": 585.64, "roasWeb": 1.93799945, "roasOff": 2.2079776, "m1": 0.08562341, "m2": -0.24264077},
+      {"id": "120254324787820120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "NEBRASKA_OPT_10/09/2026+4@9:33AM", "bid": 74, "budget": 2500.0, "created": "2026-10-06", "spend": 18.05, "roasWeb": 0.0, "roasOff": 4.15290859, "m1": null, "m2": null},
+      {"id": "120254325000640120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "KENTUCKY_OPT_10/09/2026+4@9:33AM", "bid": 72, "budget": 2500.0, "created": "2026-10-06", "spend": 9.48, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
+      {"id": "120254325314300120", "campaignId": "120254324407690120", "campaign": "BIDCAP_STATES_7DC1DV#FORCE#", "name": "FLORIDA_OPT_10/09/2026+2@9:33AM", "bid": 65, "budget": 3802.19, "created": "2026-10-06", "spend": 608.09, "roasWeb": 2.61586278, "roasOff": 2.35817067, "m1": 0.27480071, "m2": -0.04273644},
+      {"id": "120254032943790120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "CALIFORNIA", "bid": 55, "budget": 5000.0, "created": "2026-09-15", "spend": 657.69, "roasWeb": 1.54321945, "roasOff": 1.37236388, "m1": -0.00448294, "m2": 0.10551155},
+      {"id": "120254033079160120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "FLORIDA", "bid": 60, "budget": 5000.0, "created": "2026-09-15", "spend": 1576.36, "roasWeb": 2.36504352, "roasOff": 2.35692355, "m1": 0.20710485, "m2": 0.15490483},
+      {"id": "120254033107200120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "ARIZONA", "bid": 62, "budget": 5000.0, "created": "2026-09-15", "spend": 1201.12, "roasWeb": 2.16409684, "roasOff": 2.21612328, "m1": 0.18942886, "m2": 0.22052906},
+      {"id": "120254033149870120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "OHIO", "bid": 60, "budget": 5000.0, "created": "2026-09-15", "spend": 786.03, "roasWeb": 1.76390214, "roasOff": 1.62166838, "m1": -0.05271623, "m2": -0.08416998},
+      {"id": "120254033216670120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "COLORADO", "bid": 62, "budget": 2500.0, "created": "2026-09-15", "spend": 367.88, "roasWeb": 2.19008916, "roasOff": 1.48931717, "m1": 0.18472365, "m2": 0.18472365},
+      {"id": "120254033468500120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "TEXAS", "bid": 58, "budget": 7500.0, "created": "2026-09-15", "spend": 3505.78, "roasWeb": 2.51940795, "roasOff": 2.31221012, "m1": 0.1747548, "m2": 0.1377924},
+      {"id": "120254038287560120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "ADR", "bid": 57, "budget": 3802.19, "created": "2026-09-15", "spend": 992.99, "roasWeb": 2.2740511, "roasOff": 1.07566038, "m1": 0.25268034, "m2": -0.01501698},
+      {"id": "120254049048540120", "campaignId": "120254032943280120", "campaign": "BIDCAP_STATES#FORCE#", "name": "INDIANA", "bid": 67, "budget": 3306.25, "created": "2026-09-16", "spend": 329.47, "roasWeb": 1.37020063, "roasOff": 1.52666404, "m1": 0.02819865, "m2": -0.21737108}
+    ],
+      history: []
     }
-  ];
+  };
+  // Ad set names that were cut short in the export; the label comes from the earlier export of the same ad set id.
+  const NAME_FIX = { "120254258810740120": "1DC_CENTRAL" };
 
-  // Conjuntos de anúncios exportados do Meta (CSV). O log de otimizações é lido do nome de cada conjunto:
-  // NOME_OPT_MM/DD/AAAA<ação>@hh:mmAM/PM   ação: +2 / -2 = alteração de bid cap; com $ no início ($+N / $-N) = alteração de orçamento.
-  const ADSETS_SOURCE = { label: "Langehair.com · Conjuntos de anúncios", since: "2026-09-10", until: "2026-10-07" };
-  const ADSETS = [
-    {"id": "120254064705500120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "EST_OPT_10/07/2026+2@8:37AM", "bid": 57, "budget": 9000.0, "created": "2026-09-17", "lastEdit": "2026-10-07", "spend": 18636.45, "roasWeb": 2.30965178, "roasOff": 2.16451094, "m1": 0.24088723, "m2": 0.23076171},
-    {"id": "120254064761150120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "CENTRAL", "bid": 65, "budget": 9000.0, "created": "2026-09-17", "lastEdit": "2026-10-06", "spend": 15740.86, "roasWeb": 2.1748386, "roasOff": 2.10414996, "m1": 0.21630738, "m2": 0.20469547},
-    {"id": "120254064914820120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "MOUNTAIN", "bid": 67, "budget": 9000.0, "created": "2026-09-17", "lastEdit": "2026-10-07", "spend": 5025.46, "roasWeb": 1.95254166, "roasOff": 1.96151198, "m1": 0.19722046, "m2": 0.16949641},
-    {"id": "120254064951700120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "PST_OPT_10/08/2026-2@9:41AM", "bid": 63, "budget": 7647.57, "created": "2026-09-17", "lastEdit": "2026-10-08", "spend": 3982.33, "roasWeb": 1.54267728, "roasOff": 1.15571286, "m1": 0.01322221, "m2": 0.00896727},
-    {"id": "120254169990170120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "1DC_MOUNTAIN", "bid": 67, "budget": 5000.0, "created": "2026-09-24", "lastEdit": "2026-10-08", "spend": 6246.04, "roasWeb": 1.79898304, "roasOff": 1.69670383, "m1": 0.1096594, "m2": 0.09599502},
-    {"id": "120254170111810120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "1DC_CENTRAL", "bid": 65, "budget": 5000.0, "created": "2026-09-24", "lastEdit": "2026-10-06", "spend": 21222.54, "roasWeb": 2.24784639, "roasOff": 2.05361422, "m1": 0.21664852, "m2": 0.20153774},
-    {"id": "120254170199500120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "1DC_EST_OPT_10/07/2026+2@8:39AM", "bid": 57, "budget": 5000.0, "created": "2026-09-24", "lastEdit": "2026-10-07", "spend": 7283.75, "roasWeb": 2.50749545, "roasOff": 2.20824987, "m1": 0.25396121, "m2": 0.26496101},
-    {"id": "120254170490490120", "campaignId": "120254064705080120", "campaign": "BIDCAP_ZONES_GLAMWAVE#FORCE#", "name": "1DC_PST", "bid": 65, "budget": 7647.57, "created": "2026-09-24", "lastEdit": "2026-10-06", "spend": 3702.52, "roasWeb": 1.82381459, "roasOff": 0.0, "m1": 0.08948407, "m2": 0.06079929},
-    {"id": "120254232562860120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "MOUNTAIN_OPT_10/08/2026+2@11:22AM", "bid": 64, "budget": 5000.0, "created": "2026-09-29", "lastEdit": "2026-10-08", "spend": 5106.75, "roasWeb": 2.74700935, "roasOff": 2.58488667, "m1": 0.21927833, "m2": 0.16454964},
-    {"id": "120254232600930120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "CENTRAL_OPT_10/08/2026+2@11:22AM", "bid": 60, "budget": 5000.0, "created": "2026-09-29", "lastEdit": "2026-10-08", "spend": 8589.95, "roasWeb": 2.20003958, "roasOff": 2.09213325, "m1": 0.16165482, "m2": 0.10694441},
-    {"id": "120254232600970120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "PST_OPT_10/08/2026+2@11:24AM", "bid": 67, "budget": 5000.0, "created": "2026-09-29", "lastEdit": "2026-10-08", "spend": 14063.6, "roasWeb": 2.8560525, "roasOff": 2.79246352, "m1": 0.24376282, "m2": 0.20588263},
-    {"id": "120254232610240120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "EST_OPT_10/08/2026+2@11:24AM", "bid": 61, "budget": 5000.0, "created": "2026-09-29", "lastEdit": "2026-10-08", "spend": 7983.12, "roasWeb": 2.60176347, "roasOff": 2.60399318, "m1": 0.25195966, "m2": 0.19152978},
-    {"id": "120254248010750120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_PST_OPT_10/08/2026+2@11:24AM", "bid": 60, "budget": 5000.0, "created": "2026-09-30", "lastEdit": "2026-10-08", "spend": 882.61, "roasWeb": 1.99477686, "roasOff": 1.56201493, "m1": -0.03155724, "m2": 0.01063836},
-    {"id": "120254248624820120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_EST_OPT_10/08/2026+2@11:23AM", "bid": 59, "budget": 5000.0, "created": "2026-09-30", "lastEdit": "2026-10-08", "spend": 1881.78, "roasWeb": 2.38511941, "roasOff": 2.38004974, "m1": 0.04112943, "m2": 0.12624018},
-    {"id": "120254258810740120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_CENTRAL_OPT_10/08/2026+2@11:22", "bid": 62, "budget": 5000.0, "created": "2026-10-01", "lastEdit": "2026-10-08", "spend": 5166.44, "roasWeb": 2.14123652, "roasOff": 2.09483126, "m1": 0.14651026, "m2": 0.04004223},
-    {"id": "120254258897230120", "campaignId": "120254232562790120", "campaign": "BIDCAP_ZONES_HOLIDAY#FORCE#", "name": "1DC_MOUNTAIN_OPT_10/08/2026+2@11:23AM", "bid": 62, "budget": 5000.0, "created": "2026-10-01", "lastEdit": "2026-10-08", "spend": 914.25, "roasWeb": 2.38537599, "roasOff": 2.38537599, "m1": 0.14128107, "m2": 0.14333534},
-    {"id": "120254130269790120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "EST_OPT_10/07/2026+2@8:53AM", "bid": 57, "budget": 5000.0, "created": "2026-09-22", "lastEdit": "2026-10-07", "spend": 1657.06, "roasWeb": 2.07814442, "roasOff": 2.31334412, "m1": 0.25773825, "m2": 0.14781871},
-    {"id": "120254130269890120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "CENTRAL_OPT_10/08/2026-2@9:55AM", "bid": 61, "budget": 5000.0, "created": "2026-09-22", "lastEdit": "2026-10-08", "spend": 10297.47, "roasWeb": 1.96595377, "roasOff": 1.62355025, "m1": 0.12981252, "m2": 0.08612477},
-    {"id": "120254130301270120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "PST_OPT_10/08/2026+2@9:58AM", "bid": 67, "budget": 5000.0, "created": "2026-09-22", "lastEdit": "2026-10-08", "spend": 13282.17, "roasWeb": 2.29080037, "roasOff": 2.14733436, "m1": 0.20659813, "m2": 0.18101082},
-    {"id": "120254130301280120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "MOUNTAIN_OPT_10/08/2026+2@9:57AM", "bid": 69, "budget": 5000.0, "created": "2026-09-22", "lastEdit": "2026-10-08", "spend": 9889.98, "roasWeb": 2.345483, "roasOff": 2.29951729, "m1": 0.24605225, "m2": 0.20409255},
-    {"id": "120254131190280120", "campaignId": "120254131186170120", "campaign": "BIDCAP_ZONES_AXIA#FORCE#", "name": "EST_OPT_10/07/2026-2@9:03AM", "bid": 83, "budget": 5000.0, "created": "2026-09-22", "lastEdit": "2026-10-07", "spend": 2860.15, "roasWeb": 1.89511389, "roasOff": 1.54607276, "m1": 0.06510513, "m2": 0.15809612},
-    {"id": "120254131190630120", "campaignId": "120254131186170120", "campaign": "BIDCAP_ZONES_AXIA#FORCE#", "name": "CENTRAL", "bid": 85, "budget": 5000.0, "created": "2026-09-22", "lastEdit": "2026-10-08", "spend": 4073.06, "roasWeb": 1.98289738, "roasOff": 1.79057514, "m1": 0.1199263, "m2": 0.09995097},
-    {"id": "120254131223350120", "campaignId": "120254131186170120", "campaign": "BIDCAP_ZONES_AXIA#FORCE#", "name": "PST_OPT_10/08/2026-2@10:02AM", "bid": 81, "budget": 5000.0, "created": "2026-09-22", "lastEdit": "2026-10-08", "spend": 1277.0, "roasWeb": 1.3743148, "roasOff": 0.93808144, "m1": -0.11855271, "m2": -0.30054131},
-    {"id": "120254131223430120", "campaignId": "120254131186170120", "campaign": "BIDCAP_ZONES_AXIA#FORCE#", "name": "MOUNTAIN", "bid": 85, "budget": 5000.0, "created": "2026-09-22", "lastEdit": "2026-10-07", "spend": 101.18, "roasWeb": 2.8299071, "roasOff": 2.17187191, "m1": 0.16819753, "m2": 0.33426466},
-    {"id": "120254166444120120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "1DC_CENTRAL", "bid": 65, "budget": 5000.0, "created": "2026-09-24", "lastEdit": "2026-10-07", "spend": 2378.28, "roasWeb": 1.84343307, "roasOff": 1.68197605, "m1": 0.046809, "m2": 0.0719105},
-    {"id": "120254168181360120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "1DC_EST_OPT_9/30/2026+2@1PM", "bid": 57, "budget": 5000.0, "created": "2026-09-24", "lastEdit": "2026-10-07", "spend": 840.91, "roasWeb": 2.73317002, "roasOff": 2.85784448, "m1": 0.25331651, "m2": 0.30038941},
-    {"id": "120254169325020120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "1DC_MOUNTAIN", "bid": 67, "budget": 5000.0, "created": "2026-09-24", "lastEdit": "2026-10-07", "spend": 263.78, "roasWeb": 0.72018349, "roasOff": 0.72018349, "m1": -0.77575407, "m2": -0.77575407},
-    {"id": "120254169662170120", "campaignId": "120254130267390120", "campaign": "BIDCAP_ZONES_LE_TITANE#FORCE#", "name": "1DC_PST", "bid": 65, "budget": 5000.0, "created": "2026-09-24", "lastEdit": "2026-10-07", "spend": 1772.86, "roasWeb": 2.2745056, "roasOff": 2.13083943, "m1": 0.11227612, "m2": 0.1500057},
-    {"id": "120254181575700120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "1DC_PST", "bid": 65, "budget": 5000.0, "created": "2026-09-25", "lastEdit": "2026-10-07", "spend": 184.05, "roasWeb": 4.36185819, "roasOff": 4.0466721, "m1": 0.28647235, "m2": 0.42263328},
-    {"id": "120254181575710120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "1DC_MOUNTAIN", "bid": 67, "budget": 5000.0, "created": "2026-09-25", "lastEdit": "2026-10-07", "spend": 5.51, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
-    {"id": "120254181575720120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "1DC_CENTRAL", "bid": 65, "budget": 5000.0, "created": "2026-09-25", "lastEdit": "2026-10-07", "spend": 32.81, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
-    {"id": "120254181576380120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "1DC_EST", "bid": 60, "budget": 5000.0, "created": "2026-09-25", "lastEdit": "2026-10-07", "spend": 2.38, "roasWeb": 0.0, "roasOff": 0.0, "m1": null, "m2": null},
-    {"id": "120254181600040120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "MOUNTAIN_OPT_10/07/2026+2@8:55AM", "bid": 69, "budget": 5000.0, "created": "2026-09-25", "lastEdit": "2026-10-07", "spend": 4784.25, "roasWeb": 2.62622146, "roasOff": 2.61100277, "m1": 0.24513112, "m2": 0.22461857},
-    {"id": "120254181600060120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "CENTRAL_OPT_10/07/2026+2@8:56AM", "bid": 67, "budget": 5000.0, "created": "2026-09-25", "lastEdit": "2026-10-07", "spend": 3045.31, "roasWeb": 2.70608575, "roasOff": 2.48868916, "m1": 0.30664359, "m2": 0.25082425},
-    {"id": "120254181600470120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "PST_OPT_10/08/2026-2@10AM", "bid": 61, "budget": 5000.0, "created": "2026-09-25", "lastEdit": "2026-10-08", "spend": 519.42, "roasWeb": 1.82264834, "roasOff": 1.4527935, "m1": 0.16012126, "m2": 0.03773027},
-    {"id": "120254181600650120", "campaignId": "120254181573930120", "campaign": "BIDCAP_ZONES_PAIR99#FORCE#", "name": "EST_OPT_10/07/2026+2@8:57AM", "bid": 62, "budget": 5000.0, "created": "2026-09-25", "lastEdit": "2026-10-07", "spend": 844.46, "roasWeb": 2.62651872, "roasOff": 2.95470478, "m1": 0.25441503, "m2": 0.08134392}
-  ];
-
-  const TODAY = new Date(2026, 9, 8); // 08/10/2026
+  const TODAY = new Date(2026, 9, 9); // Oct 9, 2026
   const DAY = 86400000;
-  const fmt = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const fmtShort = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short" });
-  const usd = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD" });
-  const usd0 = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
-  const int = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
-  const dec1 = v => v.toFixed(1).replace(".", ",");
+  const KEYS = ["zones", "states"];
+
+  // ---------- formatters ----------
+  const fmt = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
+  const fmtMD = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+  const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+  const usd0 = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const int = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+  const num2 = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
+  const dec1 = v => v.toFixed(1);
   const pct1 = v => dec1(v * 100) + "%";
-  const pctT = v => String(Math.round(v * 1000) / 10).replace(".", ",") + "%";
+  const pctT = v => String(Math.round(v * 1000) / 10) + "%";
+  const roasF = v => v == null ? "—" : v.toFixed(2);
+  const pad2 = n => String(n).padStart(2, "0");
+  const md = d => pad2(d.getMonth() + 1) + "/" + pad2(d.getDate());
   const parse = s => { if (!s) return null; const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const sgn = (v, f) => (v >= 0 ? "+" : "−") + f(Math.abs(v));
   const chip = (ok, txt) => `<span class="chip ${ok ? "good" : "bad"}"><span aria-hidden="true">${ok ? "✓" : "✕"}</span>${txt}</span>`;
   const spendChip = (v, t) => chip(v >= t, sgn(v - t, x => usd0.format(x)));
   const marginChip = (v, t) => chip(v >= t, sgn((v - t) * 100, dec1) + " p.p.");
-  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const roasChip = (v, t) => chip(v >= t, sgn(v - t, x => x.toFixed(2)));
   const sum = a => a.reduce((x, y) => x + y, 0);
-  const num2 = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
-  const campShort = n => String(n).replace(/^BIDCAP_ZONES_/, "").replace(/#FORCE#$/, "");
-
+  const mean = a => sum(a) / a.length;
   const wavgBy = (list, k) => { const ok = list.filter(a => a[k] != null), d = sum(ok.map(a => a.spend)); return d ? sum(ok.map(a => a.spend * a[k])) / d : null; };
   const aggBy = list => ({ n: list.length, spend: sum(list.map(a => a.spend)), roasWeb: wavgBy(list, "roasWeb"), roasOff: wavgBy(list, "roasOff"), m1: wavgBy(list, "m1"), m2: wavgBy(list, "m2") });
-  const SOT = ADSETS.length ? aggBy(ADSETS) : null;
-  const roasF = v => v == null ? "—" : v.toFixed(2).replace(".", ",");
-  const roasT = v => String(v).replace(".", ",");
-  const roasChip = (v, t) => chip(v >= t, sgn(v - t, x => x.toFixed(2).replace(".", ",")));
-  // dias com veiculação: do primeiro conjunto criado até o fim do período do CSV de conjuntos
-  const sotDays = SOT ? Math.round((parse(ADSETS_SOURCE.until) - Math.max(parse(ADSETS_SOURCE.since), Math.min(...ADSETS.map(a => parse(a.created))))) / DAY) + 1 : null;
+  const campShort = n => String(n).replace(/^BIDCAP_/, "").replace(/#FORCE#$/, "").replace(/^(ZONES|STATES)_/, "");
+  const baseOf = a => NAME_FIX[a.id] || a.name.split(/_?OPT_\d/i)[0].replace(/(?:_?OPT)+$/i, "");
+  const days = (s, e) => Math.round((e - s) / DAY) + 1;
 
-  // ---------- Abas ----------
-  const tabs = { rel: document.getElementById("tab-rel"), camp: document.getElementById("tab-camp"), opt: document.getElementById("tab-opt") };
-  const panels = { rel: document.getElementById("panel-rel"), camp: document.getElementById("panel-camp"), opt: document.getElementById("panel-opt") };
-  function showTab(k, focus) {
-    Object.keys(tabs).forEach(x => {
-      const on = x === k;
-      tabs[x].setAttribute("aria-selected", on);
-      tabs[x].tabIndex = on ? 0 : -1;
-      panels[x].hidden = !on;
-    });
-    if (focus) tabs[k].focus();
-    try { localStorage.setItem("ib-tab", k); } catch (e) {}
-    redrawCharts();
+  // ---------- optimization entries (parsed from ad set names) ----------
+  const OPT_RE = /(?:^|_)OPT_(\d{1,2})\/(\d{1,2})\/(\d{4})(\$?[+-]\d+(?:[.,]\d+)?)?@(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?/gi;
+  function parseEntries(lists) {
+    const out = [], seen = new Set();
+    lists.forEach(({ list, hist }) => list.forEach(a => {
+      for (const m of a.name.matchAll(OPT_RE)) {
+        const raw = m[4] || null, ap = m[7] ? m[7].toUpperCase() : null;
+        const h = Number(m[5]), min = m[6] ? Number(m[6]) : 0;
+        const date = new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2]));
+        const key = [a.id, date.getTime(), h, min, ap, raw].join("|");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({
+          set: baseOf(a), camp: campShort(a.campaign), campFull: a.campaign, adset: a, name: a.name, hist,
+          date, kind: raw ? (raw.startsWith("$") ? "budget" : "bid") : "none",
+          amount: raw ? parseFloat(raw.replace("$", "").replace(",", ".")) : null,
+          h, min, ap, mins: (h % 12 + (ap === "PM" ? 12 : 0)) * 60 + min, order: out.length
+        });
+      }
+    }));
+    return out;
   }
-  tabs.rel.addEventListener("click", () => showTab("rel"));
-  tabs.camp.addEventListener("click", () => showTab("camp"));
-  tabs.opt.addEventListener("click", () => showTab("opt"));
-  document.querySelector(".tabs").addEventListener("keydown", e => {
-    if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
-      e.preventDefault();
-      const ks = Object.keys(tabs), i = ks.findIndex(k => tabs[k] === document.activeElement);
-      if (i >= 0) showTab(ks[(i + (e.key === "ArrowRight" ? 1 : ks.length - 1)) % ks.length], true);
-    }
-  });
+  const ENTRIES = {};
+  KEYS.forEach(k => { ENTRIES[k] = parseEntries([{ list: DATA[k].history, hist: true }, { list: DATA[k].adsets, hist: false }]); });
+  const timeLabel = e => String(e.h).padStart(2, "0") + ":" + String(e.min).padStart(2, "0") + (e.ap ? " " + e.ap : "");
+  const num = v => (v > 0 ? "+" : "−") + String(Math.abs(v));
+  const actionChip = e => {
+    if (e.kind === "bid") return `<span class="chip ${e.amount >= 0 ? "info" : "warn"}"><span aria-hidden="true">${e.amount >= 0 ? "▲" : "▼"}</span>${num(e.amount)} bid cap</span>`;
+    if (e.kind === "budget") return `<span class="chip acc"><span aria-hidden="true">$</span>${num(e.amount)} budget</span>`;
+    return `<span class="chip warn">Action not specified</span>`;
+  };
+  const actionKey = e => e.kind === "none" ? "action not specified" : (e.kind === "bid" ? num(e.amount) + " bid cap" : "$" + num(e.amount) + " budget");
 
-  // ---------- Relatórios ----------
-  const reports = REPORTS.map(r => {
-    const hasRows = r.rows && r.rows.length;
-    return {
-      ...r,
-      s: hasRows ? parse(r.rows[0][0]) : parse(r.since),
-      e: hasRows ? parse(r.rows[r.rows.length - 1][0]) : parse(r.until),
-      fromCsv: !!hasRows
-    };
-  });
-  const days = r => (r.s && r.e) ? Math.round((r.e - r.s) / DAY) + 1 : null;
-  const dated = reports.filter(r => r.s && r.e);
+  // ---------- state ----------
+  let scopeKey = "zones", tabKey = "rel";
+  const charts = [];
+  const redrawCharts = () => charts.forEach(c => { const w = c.host.clientWidth; if (w && Math.abs(w - Number(c.host.dataset.w)) > 1) c.run(); });
+  if (window.ResizeObserver) new ResizeObserver(redrawCharts).observe(document.body);
+  const $ = id => document.getElementById(id);
 
-  function status(r) {
-    if (!r.s || !r.e) return { cls: "off", label: "Período não informado" };
-    if (r.dynamic) return { cls: "info", label: "Período dinâmico" };
-    if (TODAY < r.s) return { cls: "info", label: "Futuro" };
-    if (TODAY <= r.e) return { cls: "ok", label: "Em andamento" };
-    return { cls: "warn", label: "Encerrado" };
-  }
-
-  const minS = dated.length ? new Date(Math.min(...dated.map(r => r.s))) : null;
-  const maxE = dated.length ? new Date(Math.max(...dated.map(r => r.e))) : null;
-  const tiles = [
-    ["Relatórios", String(reports.length), ""],
-    ["Período coberto", minS ? fmt.format(minS) + " a " + fmt.format(maxE) : "—", "small"],
-    ["Sem período informado", String(reports.length - dated.length), ""]
-  ];
-  document.getElementById("tiles").innerHTML = tiles.map(t =>
-    `<div class="tile"><span class="k">${t[0]}</span><span class="v ${t[2]}">${t[1]}</span></div>`).join("");
-
-  const tl = document.getElementById("timeline");
-  if (!dated.length) {
-    tl.innerHTML = `<div class="tl-empty">Nenhum relatório com período informado. As barras aparecem aqui quando houver datas.</div>`;
-  } else {
-    const start = new Date(minS.getFullYear(), minS.getMonth(), 1);
-    const endBase = new Date(Math.max(maxE, TODAY));
-    const end = new Date(endBase.getFullYear(), endBase.getMonth() + 1, 1);
-    const span = end - start;
-    const pct = d => ((d - start) / span * 100).toFixed(3) + "%";
-    let ticks = "", grid = "";
-    for (let d = new Date(start); d < end; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
-      ticks += `<span class="tl-tick${d.getTime() === start.getTime() ? " first" : ""}" style="left:${pct(d)}">${fmtShort.format(d).replace(".", "")}</span>`;
-      grid += `<span class="tl-grid" style="left:${pct(d)}"></span>`;
-    }
-    const rows = dated.map(r => {
-      const live = status(r).cls === "ok";
-      const left = pct(r.s), width = (((r.e - r.s) + DAY) / span * 100).toFixed(3) + "%";
-      return `<div class="tl-row"><div class="tl-bar ${live ? "is-live" : ""}" style="left:${left};width:${width}" title="${esc(r.name)}: ${fmt.format(r.s)} a ${fmt.format(r.e)}"></div></div>`;
-    }).join("");
-    const today = (TODAY >= start && TODAY <= end) ? `<span class="tl-today" style="left:${pct(TODAY)}"><span>hoje</span></span>` : "";
-    tl.innerHTML = `<div class="tl-axis">${ticks}</div>${grid}${today}${rows}`;
-    document.getElementById("tl-hint").textContent = "Linha laranja: hoje";
-  }
-
-  document.getElementById("count").textContent = reports.length + (reports.length === 1 ? " relatório" : " relatórios");
-  document.getElementById("list").innerHTML = reports.map(r => {
-    const st = status(r), n = days(r);
-    const period = (r.s && r.e)
-      ? `<span>Período <b>${fmt.format(r.s)} a ${fmt.format(r.e)}</b></span><span><b>${n}</b> ${n === 1 ? "dia" : "dias"}</span>${r.fromCsv ? "<span>Fonte: CSV exportado</span>" : ""}`
-      : `<span>Informe as datas do relatório para exibir o período.</span>`;
-    return `<article class="report">
-      <div class="main">
-        <span class="name">${esc(r.name)}</span>
-        <span class="pill ${st.cls}">${st.label}</span>
-        <div class="meta">${period}</div>
-        <span class="url">${esc(r.url)}</span>
-      </div>
-      <a class="open" href="${esc(r.url)}" target="_blank" rel="noopener">Abrir no Meta Ads</a>
-    </article>`;
-  }).join("");
-
-  // ---------- Gráficos ----------
+  // ---------- chart ----------
   function drawChart(host, o) {
     const rows = o.rows, n = rows.length;
     const W = Math.max(host.clientWidth, 260), H = 240;
     const m = { l: 48, r: 54, t: 20, b: 26 };
+    const yMin = o.yMin || 0, yMax = o.yMax;
     const pw = W - m.l - m.r, ph = H - m.t - m.b, band = pw / n;
     const cx = i => m.l + band * (i + 0.5);
-    const y = v => m.t + ph - (v / o.yMax) * ph;
+    const y = v => m.t + ph - ((v - yMin) / (yMax - yMin)) * ph;
     let g = "";
     o.yTicks.forEach(t => {
       g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)" stroke-width="1"/>`;
       g += `<text x="${m.l - 8}" y="${y(t) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${o.yFmt(t)}</text>`;
     });
-    const step = Math.ceil(46 / band);
+    if (yMin < 0) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(0)}" y2="${y(0)}" stroke="var(--muted)" stroke-width="1" opacity=".6"/>`;
+    const step = Math.ceil(52 / band);
     rows.forEach((r, i) => {
-      if (i % step === 0) {
-        const d = parse(r.date);
-        g += `<text x="${cx(i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--muted)">${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}</text>`;
-      }
+      if (i % step === 0) g += `<text x="${cx(i)}" y="${H - 8}" text-anchor="middle" font-size="11" fill="var(--muted)">${fmtMD.format(parse(r.date))}</text>`;
     });
     if (o.kind === "bar") {
       const s = o.series[0], w = Math.min(24, Math.max(band - 2, 3)), y0 = y(0);
@@ -511,8 +555,6 @@
     }
     (o.ref || []).forEach(f => {
       g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(f.v)}" y2="${y(f.v)}" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="5 4" opacity=".75"/>`;
-      g += `<text x="${W - m.r + 8}" y="${y(f.v) - 1}" font-size="11" font-weight="600" fill="var(--fg)">Meta</text>`;
-      g += `<text x="${W - m.r + 8}" y="${y(f.v) + 12}" font-size="11" fill="var(--muted)">${f.label}</text>`;
     });
     host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(o.aria)}">${g}<g id="hv"></g><rect class="hit" x="${m.l}" y="${m.t}" width="${pw}" height="${ph}" fill="transparent"/></svg><div class="tip" hidden></div>`;
     host.dataset.w = W;
@@ -527,8 +569,7 @@
         : `<line x1="${cx(i)}" x2="${cx(i)}" y1="${m.t}" y2="${m.t + ph}" stroke="var(--muted)" stroke-width="1"/>`;
       if (o.kind === "line") o.series.forEach(s => { h += `<circle cx="${cx(i)}" cy="${y(r[s.key])}" r="4" fill="${s.color}" stroke="var(--surface)" stroke-width="2"/>`; });
       hv.innerHTML = h;
-      const d = parse(r.date);
-      tip.innerHTML = `<b>${fmt.format(d)}</b>` + o.series.map(s => `<div class="row"><span class="sw" style="background:${s.color}"></span>${s.name}: <b>${o.tipFmt(r[s.key])}</b></div>`).join("");
+      tip.innerHTML = `<b>${fmt.format(parse(r.date))}</b>` + o.series.map(s => `<div class="row"><span class="sw" style="background:${s.color}"></span>${s.name}: <b>${o.tipFmt(r[s.key])}</b></div>`).join("");
       tip.hidden = false;
       const tw = tip.offsetWidth, px = cx(i) / scale;
       tip.style.left = Math.max(0, Math.min(px + 14 > rect.width - tw ? px - tw - 14 : px + 14, rect.width - tw)) + "px";
@@ -537,257 +578,380 @@
     hit.addEventListener("pointerdown", show);
     hit.addEventListener("pointerleave", () => { hv.innerHTML = ""; tip.hidden = true; });
   }
-
-  const charts = [];
-  const redrawCharts = () => charts.forEach(c => { const w = c.host.clientWidth; if (w && Math.abs(w - Number(c.host.dataset.w)) > 1) c.run(); });
   function mountChart(host, opts) {
     const run = () => drawChart(host, opts);
     run();
     charts.push({ host, run });
   }
-  if (window.ResizeObserver) new ResizeObserver(redrawCharts).observe(document.body);
 
-  // ---------- Metas e detalhe por relatório ----------
-  reports.filter(r => r.fromCsv).forEach((r, idx) => {
-    const data = r.rows.map(x => ({ date: x[0], spend: x[1], m1: x[2], m2: x[3] }));
-    const T = r.targets;
-    const useSot = r.sot === "adsets" && SOT;
-    const nd = data.length, dTotal = data.reduce((x, d) => x + d.spend, 0);
-    const n = useSot ? sotDays : nd, total = useSot ? SOT.spend : dTotal;
-    const wavg = k => data.reduce((x, d) => x + d.spend * d[k], 0) / dTotal;
-    const el = document.createElement("section");
-    el.className = "detail";
+  // ---------- reports ----------
+  const reports = KEYS.map(k => {
+    const r = DATA[k].report, rows = r.rows.map(x => ({ date: x[0], spend: x[1], m1: x[2], m2: x[3] }));
+    return { ...r, key: k, data: rows, s: parse(rows[0].date), e: parse(rows[rows.length - 1].date) };
+  });
 
-    let goals = "", tableRows = "", legendSpend = "", legendMargin = "";
-    if (T) {
-      const avg = total / n, targetTotal = T.dailySpend * n;
-      const spendDays = data.filter(d => d.spend >= T.dailySpend).length;
-      const spendOk = avg >= T.dailySpend;
-      const mCard = (title, k) => {
-        const simple = mean(data.map(d => d[k])), w = wavg(k);
-        const main = useSot ? SOT[k] : simple, ok = main >= T.margin;
-        const dOk = data.filter(d => d[k] >= T.margin).length;
-        const lines = useSot
-          ? `<li>Ponderada pelo gasto dos conjuntos · meta <b>${pctT(T.margin)}</b></li>
-            <li>Média simples dos dias (CSV diário): <b>${pct1(simple)}</b> (${simple >= T.margin ? "na meta" : "abaixo da meta"})</li>`
-          : `<li>Média simples dos dias · meta <b>${pctT(T.margin)}</b></li>
-            <li>Ponderada pelo gasto: <b>${pct1(w)}</b> (${w >= T.margin ? "na meta" : "abaixo da meta"})</li>`;
-        return `<div class="goal">
-          <div class="top"><span class="k">${title}</span>${chip(ok, ok ? "Boa" : "Abaixo da meta")}</div>
-          <div class="vrow"><span class="v">${pct1(main)}</span>${marginChip(main, T.margin)}</div>
-          <ul>
-            ${lines}
-            <li>Dias na meta: <b>${dOk} de ${nd}</b></li>
-          </ul></div>`;
-      };
-      const rCard = (title, k) => {
-        const v = SOT[k], ok = v >= T.roas, nOk = ADSETS.filter(a => a[k] != null && a[k] >= T.roas).length;
-        return `<div class="goal">
-          <div class="top"><span class="k">${title}</span>${chip(ok, ok ? "Na meta" : "Abaixo da meta")}</div>
-          <div class="vrow"><span class="v">${roasF(v)}</span>${roasChip(v, T.roas)}</div>
-          <ul>
-            <li>Ponderado pelo gasto dos conjuntos · meta <b>${roasT(T.roas)}</b></li>
-            <li>Conjuntos na meta: <b>${nOk} de ${ADSETS.length}</b></li>
-          </ul></div>`;
-      };
-      goals = `<div class="goals">
-        <div class="goal">
-          <div class="top"><span class="k">Investimento diário</span>${chip(spendOk, spendOk ? "Na meta" : "Abaixo da meta")}</div>
-          <div class="vrow"><span class="v">${usd.format(avg)}</span>${spendChip(avg, T.dailySpend)}</div>
-          <ul>
-            <li>Média por dia · meta <b>${usd0.format(T.dailySpend)}/dia</b> (atingido <b>${dec1(avg / T.dailySpend * 100)}%</b>)</li>
-            <li>Total: <b>${usd.format(total)}</b> de ${usd.format(targetTotal)} (${n} dias)</li>
-            <li>Dias na meta: <b>${spendDays} de ${nd}</b></li>
-          </ul>
+  function goalCard(title, headChip, big, bigChip, lines) {
+    return `<div class="goal"><div class="top"><span class="k">${title}</span>${headChip || ""}</div>
+      <div class="vrow"><span class="v">${big}</span>${bigChip || ""}</div>
+      <ul>${lines.map(l => `<li>${l}</li>`).join("")}</ul></div>`;
+  }
+  function spendCard(total, n, T, daysOnLine) {
+    const avg = total / n, has = T.dailySpend != null;
+    const lines = [];
+    if (has) lines.push(`Average per day · target <b>${usd0.format(T.dailySpend)}/day</b> (<b>${dec1(avg / T.dailySpend * 100)}%</b> reached)`,
+      `Total: <b>${usd.format(total)}</b> of ${usd.format(T.dailySpend * n)} (${n} days)`);
+    else lines.push(`Average per day · no daily target set`, `Total: <b>${usd.format(total)}</b> (${n} days)`);
+    if (daysOnLine) lines.push(daysOnLine);
+    return goalCard("Daily spend", has ? chip(avg >= T.dailySpend, avg >= T.dailySpend ? "On target" : "Below target") : "", usd.format(avg), has ? spendChip(avg, T.dailySpend) : "", lines);
+  }
+  function marginCard(title, v, T, lines) {
+    const ok = v >= T.margin;
+    return goalCard(title, chip(ok, ok ? "Good" : "Below target"), pct1(v), marginChip(v, T.margin), lines);
+  }
+  function roasCard(title, v, T, lines) {
+    const ok = v >= T.roas;
+    return goalCard(title, chip(ok, ok ? "On target" : "Below target"), roasF(v), roasChip(v, T.roas), lines);
+  }
+
+  function renderReports() {
+    const P = $("panel-rel"), S = DATA[scopeKey], r = reports.find(x => x.key === scopeKey), T = r.targets;
+    const minS = new Date(Math.min(...reports.map(x => x.s))), maxE = new Date(Math.max(...reports.map(x => x.e)));
+    charts.length = 0;
+
+    // timeline
+    const start = new Date(minS.getFullYear(), minS.getMonth(), 1);
+    const endBase = new Date(Math.max(maxE, TODAY));
+    const end = new Date(endBase.getFullYear(), endBase.getMonth() + 1, 1), span = end - start;
+    const pct = d => ((d - start) / span * 100).toFixed(3) + "%";
+    let ticks = "", grid = "";
+    for (let d = new Date(start); d < end; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+      ticks += `<span class="tl-tick${d.getTime() === start.getTime() ? " first" : ""}" style="left:${pct(d)}">${fmtMD.format(d)}</span>`;
+      grid += `<span class="tl-grid" style="left:${pct(d)}"></span>`;
+    }
+    const tlRows = reports.map(x => `<div class="tl-row"><div class="tl-bar" style="left:${pct(x.s)};width:${(((x.e - x.s) + DAY) / span * 100).toFixed(3)}%${x.key === scopeKey ? "" : ";opacity:.55"}" title="${esc(x.name)}: ${fmt.format(x.s)} – ${fmt.format(x.e)}">${esc(DATA[x.key].label)}</div></div>`).join("");
+    const tlToday = `<span class="tl-today" style="left:${pct(TODAY)}"><span>today</span></span>`;
+
+    // list
+    const list = reports.map(x => {
+      const n = days(x.s, x.e);
+      return `<article class="report">
+        <div class="main">
+          <span class="name">${esc(x.name)}</span>
+          <span class="pill">${x.dynamic ? "Dynamic period" : "CSV period"}</span>
+          <div class="meta"><span>Period <b>${fmt.format(x.s)} – ${fmt.format(x.e)}</b></span><span><b>${n}</b> days</span><span>Source: exported CSV</span></div>
+          ${x.url ? `<span class="url">${esc(x.url)}</span>` : `<span class="url">No Meta Ads link added yet</span>`}
         </div>
-        ${mCard("Margin %", "m1")}
-        ${mCard("Margin % 2", "m2")}
-        ${useSot && T.roas != null ? rCard("ROAS site", "roasWeb") + rCard("ROAS offline", "roasOff") : ""}
-      </div>`;
-      const mean1 = useSot ? SOT.m1 : mean(data.map(d => d.m1)), mean2 = useSot ? SOT.m2 : mean(data.map(d => d.m2));
-      tableRows = `<tr class="total"><td>Geral (${n} dias${useSot ? ", soma dos conjuntos" : ""})</td><td>${usd.format(total)}${spendChip(total, targetTotal)}</td><td>${pct1(mean1)}${marginChip(mean1, T.margin)}</td><td>${pct1(mean2)}${marginChip(mean2, T.margin)}</td></tr>` +
-        data.map(d => `<tr><td>${fmt.format(parse(d.date))}</td><td>${usd.format(d.spend)}${spendChip(d.spend, T.dailySpend)}</td><td>${pct1(d.m1)}${marginChip(d.m1, T.margin)}</td><td>${pct1(d.m2)}${marginChip(d.m2, T.margin)}</td></tr>`).join("");
-      legendSpend = `<div class="legend"><span><i class="dash"></i>Meta ${usd0.format(T.dailySpend)}/dia</span></div>`;
-      legendMargin = `<span><i class="dash"></i>Meta ${pctT(T.margin)}</span>`;
-    } else {
-      tableRows = data.map(d => `<tr><td>${fmt.format(parse(d.date))}</td><td>${usd.format(d.spend)}</td><td>${pct1(d.m1)}</td><td>${pct1(d.m2)}</td></tr>`).join("");
-    }
+        ${x.url ? `<a class="open" href="${esc(x.url)}" target="_blank" rel="noopener">Open in Meta Ads</a>` : ""}
+      </article>`;
+    }).join("");
 
-    el.innerHTML = `
-      <div class="section-head"><h2>${esc(r.name)}</h2><span class="hint">${fmt.format(r.s)} a ${fmt.format(r.e)} · ${useSot ? "totais: soma dos conjuntos de anúncios" : "dados do CSV"}</span></div>
-      ${goals}
-      <div class="chart-card">
-        <div class="chart-head"><h3>Valor gasto por dia (USD)</h3>${legendSpend}</div>
-        <div class="chart" id="c-spend-${idx}"></div>
+    // goals
+    const data = r.data, nd = data.length, dTotal = sum(data.map(d => d.spend));
+    const wd = k => sum(data.map(d => d.spend * d[k])) / dTotal;
+    const dOk = (k) => data.filter(d => d[k] >= T.margin).length;
+    const spendOnDays = T.dailySpend != null ? `Days on target: <b>${data.filter(d => d.spend >= T.dailySpend).length} of ${nd}</b>` : "";
+    const rowA = spendCard(dTotal, nd, T, spendOnDays) +
+      [["Margin %", "m1"], ["Margin % 2", "m2"]].map(([title, k]) => marginCard(title, wd(k), T, [
+        `Spend-weighted · target <b>${pctT(T.margin)}</b>`,
+        `Simple average of days: <b>${pct1(mean(data.map(d => d[k])))}</b> (${mean(data.map(d => d[k])) >= T.margin ? "on target" : "below target"})`,
+        `Days on target: <b>${dOk(k)} of ${nd}</b>`])).join("");
+
+    const ADS = S.adsets, A = aggBy(ADS), w = days(parse(S.source.since), parse(S.source.until));
+    const inWin = data.filter(d => d.date >= S.source.since && d.date <= S.source.until);
+    const winSum = sum(inWin.map(d => d.spend));
+    const withM = k => ADS.filter(a => a[k] != null);
+    const rowB = spendCard(A.spend, w, T, T.dailySpend != null ? `Days on target: <b>${inWin.filter(d => d.spend >= T.dailySpend).length} of ${inWin.length}</b> (daily report)` : "") +
+      [["Margin %", "m1"], ["Margin % 2", "m2"]].map(([title, k]) => marginCard(title, A[k], T, [
+        `Spend-weighted across ad sets · target <b>${pctT(T.margin)}</b>`,
+        `Ad sets on target: <b>${withM(k).filter(a => a[k] >= T.margin).length} of ${withM(k).length}</b> with margin data`])).join("") +
+      [["ROAS site", "roasWeb"], ["ROAS offline", "roasOff"]].map(([title, k]) => roasCard(title, A[k], T, [
+        `Spend-weighted across ad sets · target <b>${T.roas}</b>`,
+        `Ad sets on target: <b>${ADS.filter(a => a[k] >= T.roas).length} of ${ADS.length}</b>`])).join("");
+
+    // table
+    const tRows = `<tr class="total"><td>Total (${nd} days)</td><td>${usd.format(dTotal)}${T.dailySpend != null ? spendChip(dTotal, T.dailySpend * nd) : ""}</td><td>${pct1(wd("m1"))}${marginChip(wd("m1"), T.margin)}</td><td>${pct1(wd("m2"))}${marginChip(wd("m2"), T.margin)}</td></tr>` +
+      data.map(d => `<tr><td>${fmt.format(parse(d.date))}</td><td>${usd.format(d.spend)}${T.dailySpend != null ? spendChip(d.spend, T.dailySpend) : ""}</td><td>${pct1(d.m1)}${marginChip(d.m1, T.margin)}</td><td>${pct1(d.m2)}${marginChip(d.m2, T.margin)}</td></tr>`).join("");
+
+    P.innerHTML = `
+      <div class="tiles">
+        <div class="tile"><span class="k">Reports</span><span class="v">${reports.length}</span></div>
+        <div class="tile"><span class="k">Period covered</span><span class="v small">${fmt.format(minS)} – ${fmt.format(maxE)}</span></div>
+        <div class="tile"><span class="k">Data through</span><span class="v small">${fmt.format(maxE)}</span></div>
       </div>
-      <div class="chart-card">
-        <div class="chart-head"><h3>Margin % por dia</h3>
-          <div class="legend"><span><i style="background:var(--s1)"></i>Margin %</span><span><i style="background:var(--s2)"></i>Margin % 2</span>${legendMargin}</div></div>
-        <div class="chart" id="c-margin-${idx}"></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-head"><h3>Resultado por dia</h3>${T ? `<span class="hint">✓ na meta · ✕ abaixo, com a diferença para a meta</span>` : ""}</div>
-        <div class="tbl-scroll"><table>
-          <thead><tr><th>Dia</th><th>Valor gasto (USD)</th><th>Margin %</th><th>Margin % 2</th></tr></thead>
-          <tbody>${tableRows}</tbody>
-        </table></div>
-        ${useSot ? `<p class="note">Geral: soma dos conjuntos de anúncios (fonte da verdade), margins ponderadas pelo gasto. Os dias vêm do CSV diário, que soma ${usd.format(dTotal)} (diferença de ${usd.format(Math.abs(total - dTotal))}).</p>` : ""}
-      </div>`;
-    document.getElementById("details").appendChild(el);
-    mountChart(el.querySelector(`#c-spend-${idx}`), {
-      kind: "bar", rows: data, yMax: 20000, yTicks: [0, 5000, 10000, 15000, 20000],
+      <section>
+        <div class="section-head"><h2>Periods</h2><span class="hint">Orange line: today</span></div>
+        <div class="timeline"><div class="tl-scroll"><div class="tl-inner"><div class="tl-axis">${ticks}</div>${grid}${tlToday}${tlRows}</div></div></div>
+      </section>
+      <section>
+        <div class="section-head"><h2>Reports</h2><span class="hint">${reports.length} reports</span></div>
+        <div class="list">${list}</div>
+      </section>
+      <section class="detail">
+        <div class="section-head"><h2>${esc(S.label)} · targets</h2><span class="hint">${T.dailySpend != null ? usd0.format(T.dailySpend) + "/day spend · " : ""}Margin ≥ ${pctT(T.margin)} · ROAS ≥ ${T.roas}</span></div>
+        <div class="sub"><h3>Full period · ${fmt.format(r.s)} – ${fmt.format(r.e)}</h3><span class="hint">Daily report</span></div>
+        <div class="goals">${rowA}</div>
+        <div class="sub"><h3>Last ${w} days · ${fmtMD.format(parse(S.source.since))} – ${fmt.format(parse(S.source.until))}</h3><span class="hint">Ad sets (source of truth)</span></div>
+        <div class="goals">${rowB}</div>
+        <div class="chart-card">
+          <div class="chart-head"><h3>Spend per day (USD)</h3>${T.dailySpend != null ? `<div class="legend"><span><i class="dash"></i>Target ${usd0.format(T.dailySpend)}/day</span></div>` : ""}</div>
+          <div class="chart" id="c-spend"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head"><h3>Margin % per day</h3>
+            <div class="legend"><span><i style="background:var(--s1)"></i>Margin %</span><span><i style="background:var(--s2)"></i>Margin % 2</span><span><i class="dash"></i>Target ${pctT(T.margin)}</span></div></div>
+          <div class="chart" id="c-margin"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-head"><h3>Result by day</h3><span class="hint">✓ on target · ✕ below, with the difference to the target</span></div>
+          <div class="tbl-scroll"><table>
+            <thead><tr><th>Day</th><th>Spend (USD)</th><th>Margin %</th><th>Margin % 2</th></tr></thead>
+            <tbody>${tRows}</tbody>
+          </table></div>
+          <p class="note">Total row: spend and spend-weighted margins from the daily report. The last-${w}-days cards use the ad set sum (source of truth); the daily report adds up to ${usd.format(winSum)} for the same days (difference of ${usd.format(Math.abs(A.spend - winSum))}).</p>
+        </div>
+      </section>`;
+
+    const maxSpend = Math.max(...data.map(d => d.spend));
+    const sMax = Math.ceil(maxSpend * 1.1 / 5000) * 5000, sTicks = [];
+    for (let v = 0; v <= sMax; v += 5000) sTicks.push(v);
+    mountChart($("c-spend"), {
+      kind: "bar", rows: data, yMax: sMax, yTicks: sTicks,
       yFmt: v => int.format(v), labelFmt: v => usd0.format(v), tipFmt: v => usd.format(v),
-      series: [{ key: "spend", name: "Valor gasto", color: "var(--s1)" }],
-      ref: T ? [{ v: T.dailySpend, label: int.format(T.dailySpend) }] : [],
-      aria: "Valor gasto por dia em dólares, de " + fmt.format(r.s) + " a " + fmt.format(r.e) + (T ? ", com meta de " + usd0.format(T.dailySpend) + " por dia" : "")
+      series: [{ key: "spend", name: "Spend", color: "var(--s1)" }],
+      ref: T.dailySpend != null ? [{ v: T.dailySpend, label: int.format(T.dailySpend) }] : [],
+      aria: `Spend per day in US dollars, ${fmt.format(r.s)} to ${fmt.format(r.e)}` + (T.dailySpend != null ? `, with a target of ${usd0.format(T.dailySpend)} per day` : "")
     });
-    mountChart(el.querySelector(`#c-margin-${idx}`), {
-      kind: "line", rows: data, yMax: 0.4, yTicks: [0, 0.1, 0.2, 0.3, 0.4],
-      yFmt: v => Math.round(v * 100) + "%", labelFmt: pct1, tipFmt: pct1,
+    const allM = data.flatMap(d => [d.m1, d.m2]);
+    const mMin = Math.min(0, Math.floor(Math.min(...allM) * 10) / 10), mMax = Math.max(0.3, Math.ceil(Math.max(...allM) * 10) / 10), mTicks = [];
+    for (let v = mMin; v <= mMax + 1e-9; v += 0.1) mTicks.push(Math.round(v * 10) / 10);
+    mountChart($("c-margin"), {
+      kind: "line", rows: data, yMin: mMin, yMax: mMax, yTicks: mTicks,
+      yFmt: v => (v < -1e-9 ? "−" : "") + Math.abs(Math.round(v * 100)) + "%",
+      labelFmt: v => (v < 0 ? "−" : "") + pct1(Math.abs(v)), tipFmt: v => (v < 0 ? "−" : "") + pct1(Math.abs(v)),
       series: [{ key: "m1", name: "Margin %", color: "var(--s1)" }, { key: "m2", name: "Margin % 2", color: "var(--s2)" }],
-      ref: T ? [{ v: T.margin, label: Math.round(T.margin * 100) + "%" }] : [],
-      aria: "Margin % e Margin % 2 por dia, de " + fmt.format(r.s) + " a " + fmt.format(r.e) + (T ? ", com meta de " + pctT(T.margin) : "")
+      ref: [{ v: T.margin, label: pctT(T.margin) }],
+      aria: `Margin % and Margin % 2 per day, ${fmt.format(r.s)} to ${fmt.format(r.e)}, with a target of ${pctT(T.margin)}`
     });
-  });
-
-  // ---------- Otimizações ----------
-  const OPT_RE = /(?:^|_)OPT_(\d{1,2})\/(\d{1,2})\/(\d{4})(\$?[+-]\d+(?:[.,]\d+)?)?@(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?/gi;
-  const entries = [];
-  ADSETS.forEach(a => {
-    const base = a.name.split(/_?OPT_\d/i)[0];
-    for (const m of a.name.matchAll(OPT_RE)) {
-      const raw = m[4] || null, ap = m[7] ? m[7].toUpperCase() : null;
-      const h = Number(m[5]), min = m[6] ? Number(m[6]) : 0;
-      entries.push({
-        set: base, camp: campShort(a.campaign), adset: a, name: a.name,
-        date: new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2])),
-        kind: raw ? (raw.startsWith("$") ? "budget" : "bid") : "none",
-        amount: raw ? parseFloat(raw.replace("$", "").replace(",", ".")) : null,
-        h, min, ap,
-        mins: (h % 12 + (ap === "PM" ? 12 : 0)) * 60 + min
-      });
-    }
-  });
-  const noOpt = ADSETS.filter(a => !entries.some(e => e.adset === a));
-  const timeLabel = e => String(e.h).padStart(2, "0") + ":" + String(e.min).padStart(2, "0") + (e.ap ? " " + e.ap : "");
-  const num = v => (v > 0 ? "+" : "−") + String(Math.abs(v)).replace(".", ",");
-  const actionChip = e => {
-    if (e.kind === "bid") return `<span class="chip ${e.amount >= 0 ? "info" : "warn"}"><span aria-hidden="true">${e.amount >= 0 ? "▲" : "▼"}</span>${num(e.amount)} bid cap</span>`;
-    if (e.kind === "budget") return `<span class="chip acc"><span aria-hidden="true">$</span>${num(e.amount)} orçamento</span>`;
-    return `<span class="chip warn">Ação não informada</span>`;
-  };
-  const actionKey = e => e.kind === "none" ? "ação não informada" : (e.kind === "bid" ? num(e.amount) + " bid cap" : "$" + num(e.amount) + " orçamento");
-
-  document.getElementById("opt-count").textContent = entries.length;
-  const last = entries.slice().sort((a, b) => (b.date - a.date) || (b.mins - a.mins))[0];
-  const noAp = entries.filter(e => !e.ap).length;
-  document.getElementById("opt-tiles").innerHTML = [
-    ["Otimizações registradas", String(entries.length), "", ""],
-    ["Conjuntos no CSV", String(ADSETS.length), "", noOpt.length ? noOpt.length + " sem registro no nome" : "todos com registro"],
-    ["Última otimização", last ? fmt.format(last.date) + " " + timeLabel(last) : "—", "small", ""],
-    ["Horário sem AM/PM", String(noAp), "", noAp ? "não dá para confirmar manhã ou tarde" : ""]
-  ].map(t => `<div class="tile"><span class="k">${t[0]}</span><span class="v ${t[2]}">${t[1]}</span>${t[3] ? `<span class="n">${t[3]}</span>` : ""}</div>`).join("");
-
-  document.getElementById("opt-how").innerHTML =
-    `<span>Nome do conjunto: <code>NOME_OPT_MM/DD/AAAA+2@hh:mmAM</code></span>` +
-    `<span><b>+2</b> / <b>−2</b> = alteração de bid cap · <b>$</b> no início (<code>$+N</code>) = alteração de orçamento, valor como escrito no nome.</span>` +
-    `<span>Fonte: ${esc(ADSETS_SOURCE.label)}, ${fmt.format(parse(ADSETS_SOURCE.since))} a ${fmt.format(parse(ADSETS_SOURCE.until))}.` +
-    (reports.some(r => r.fromCsv && r.e < (last ? last.date : TODAY)) ? ` Os dados diários dos relatórios terminam antes da última otimização, então o efeito ainda não aparece neles.` : "") + `</span>`;
-
-  const byDay = new Map();
-  entries.forEach(e => { const k = e.date.getTime(); if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(e); });
-  const logEl = document.getElementById("opt-log");
-  if (!entries.length) {
-    logEl.innerHTML = `<div class="how">Nenhuma otimização encontrada nos nomes dos conjuntos.</div>`;
-  } else {
-    logEl.innerHTML = [...byDay.keys()].sort((a, b) => b - a).map(k => {
-      const list = byDay.get(k).sort((a, b) => (b.mins - a.mins) || a.set.localeCompare(b.set));
-      const counts = {};
-      list.forEach(e => { const a = actionKey(e); counts[a] = (counts[a] || 0) + 1; });
-      const sum = Object.entries(counts).map(([a, c]) => c + "× " + a).join(" · ");
-      return `<div class="day">
-        <div class="day-head"><h3>${fmt.format(new Date(k))}</h3><span class="hint">${list.length} ${list.length === 1 ? "otimização" : "otimizações"} · ${sum}</span></div>
-        <ul class="log">${list.map(e => `<li class="log-item">
-          <span class="log-time">${timeLabel(e)}</span>
-          <div class="log-body">
-            <div class="log-top"><b>${esc(e.set)}</b><span class="camp" title="${esc(e.adset.campaign)}">${esc(e.camp)}</span>${actionChip(e)}${e.ap ? "" : `<span class="chip warn">AM/PM não informado</span>`}</div>
-            <span class="log-meta">Lance no CSV: ${esc(e.adset.bid)} · Orçamento diário: ${num2.format(e.adset.budget)} · Criado em ${fmt.format(parse(e.adset.created))}</span>
-            <span class="log-raw">${esc(e.name)}</span>
-          </div></li>`).join("")}</ul>
-      </div>`;
-    }).join("");
   }
 
-
-  // ---------- Campanhas e conjuntos ----------
-  const GOAL = (reports.find(r => r.targets) || {}).targets || null;
-  const roasCell = v => v == null ? "—" : roasF(v) + (GOAL && GOAL.roas != null ? roasChip(v, GOAL.roas) : "");
-  const mCell = v => v == null ? "—" : pct1(v) + (GOAL ? marginChip(v, GOAL.margin) : "");
-  const baseName = a => a.name.split(/_?OPT_\d/i)[0];
-  const lastEntry = id => entries.filter(e => e.adset.id === id).sort((a, b) => (b.date - a.date) || (b.mins - a.mins))[0];
-  const groups = new Map();
-  ADSETS.forEach(a => { if (!groups.has(a.campaignId)) groups.set(a.campaignId, { id: a.campaignId, name: a.campaign, list: [] }); groups.get(a.campaignId).list.push(a); });
-  const camps = [...groups.values()].map(g => ({ ...g, a: aggBy(g.list) })).sort((x, y) => y.a.spend - x.a.spend);
-  const all = SOT;
-  const repCsv = reports.find(r => r.fromCsv);
-  const repTotal = repCsv ? sum(repCsv.rows.map(x => x[1])) : null;
-
-  document.getElementById("camp-count").textContent = camps.length;
-  document.getElementById("camp-tiles").innerHTML = [
-    ["Valor gasto", usd.format(all.spend), "soma dos conjuntos · fonte da verdade"],
-    ["Campanhas", String(camps.length), ""],
-    ["Conjuntos de anúncios", String(ADSETS.length), ""],
-    ["ROAS site", roasF(all.roasWeb) + (GOAL && GOAL.roas != null ? " " + roasChip(all.roasWeb, GOAL.roas) : ""), "offline: " + roasF(all.roasOff) + (GOAL && GOAL.roas != null ? " · meta " + roasT(GOAL.roas) : "") + " · ponderado pelo gasto"]
-  ].map(t => `<div class="tile"><span class="k">${t[0]}</span><span class="v">${t[1]}</span>${t[2] ? `<span class="n">${t[2]}</span>` : ""}</div>`).join("");
-  document.getElementById("camp-src").textContent = ADSETS_SOURCE.label + " · " + fmt.format(parse(ADSETS_SOURCE.since)) + " a " + fmt.format(parse(ADSETS_SOURCE.until));
-
-  const campRow = (label, a, title, cls) => {
-    const share = all.spend ? a.spend / all.spend : 0;
-    return `<tr class="${cls || ""}"><td title="${esc(title || "")}">${esc(label)}</td><td>${a.n}</td><td>${usd.format(a.spend)}</td>` +
-      `<td><span class="share"><span class="bar"><i style="width:${(share * 100).toFixed(1)}%"></i></span>${dec1(share * 100)}%</span></td>` +
-      `<td>${roasCell(a.roasWeb)}</td><td>${roasCell(a.roasOff)}</td><td>${mCell(a.m1)}</td><td>${mCell(a.m2)}</td></tr>`;
-  };
-  document.getElementById("camp-table").innerHTML =
-    `<thead><tr><th>Campanha</th><th>Conjuntos</th><th>Valor gasto (USD)</th><th>% do gasto</th><th>ROAS site</th><th>ROAS offline</th><th>Margin %</th><th>Margin % 2</th></tr></thead><tbody>` +
-    campRow("Todas as campanhas", all, "", "total") + camps.map(c => campRow(campShort(c.name), c.a, c.name)).join("") + `</tbody>`;
-  document.getElementById("camp-note").textContent =
-    "ROAS e Margin % por campanha são médias ponderadas pelo gasto dos conjuntos. A base da Margin % não foi informada, então a margin agregada é uma aproximação." +
-    (repTotal != null ? " Os dados diários do Relatório 1 somam " + usd.format(repTotal) + " (diferença de " + usd.format(Math.abs(all.spend - repTotal)) + ")." : "");
-
-  const sel = document.getElementById("f-camp");
-  sel.innerHTML = `<option value="all">Todas as campanhas (${ADSETS.length})</option>` + camps.map(c => `<option value="${esc(c.id)}">${esc(campShort(c.name))} (${c.a.n})</option>`).join("");
-  const cols = [["name", "Conjunto"], ["camp", "Campanha"], ["spend", "Valor gasto (USD)"], ["roasWeb", "ROAS site"], ["roasOff", "ROAS offline"], ["m1", "Margin %"], ["m2", "Margin % 2"], ["bid", "Lance"], ["budget", "Orçamento/dia"], [null, "Última otimização"]];
+  // ---------- campaigns ----------
   const adState = { camp: "all", key: "spend", dir: -1 };
-  const adVal = (a, k) => k === "name" ? baseName(a) : k === "camp" ? campShort(a.campaign) : a[k];
-  function renderAdsets() {
-    const list = ADSETS.filter(a => adState.camp === "all" || a.campaignId === adState.camp).sort((x, y) => {
-      const a = adVal(x, adState.key), b = adVal(y, adState.key);
-      if (a == null && b == null) return 0;
-      if (a == null) return 1;
-      if (b == null) return -1;
-      return (typeof a === "string" ? a.localeCompare(b) : a - b) * adState.dir;
-    });
-    document.getElementById("ad-thead").innerHTML = "<tr>" + cols.map(([k, l]) => k
-      ? `<th aria-sort="${adState.key === k ? (adState.dir > 0 ? "ascending" : "descending") : "none"}"><button class="sort" data-k="${k}">${l}<span aria-hidden="true">${adState.key === k ? (adState.dir > 0 ? " ▲" : " ▼") : ""}</span></button></th>`
-      : `<th>${l}</th>`).join("") + "</tr>";
-    document.getElementById("ad-tbody").innerHTML = list.map(a => {
-      const e = lastEntry(a.id);
-      const opt = e ? String(e.date.getDate()).padStart(2, "0") + "/" + String(e.date.getMonth() + 1).padStart(2, "0") + " " + timeLabel(e) + " " + actionChip(e) : "—";
-      return `<tr><td>${esc(baseName(a))}</td><td title="${esc(a.campaign)}">${esc(campShort(a.campaign))}</td><td>${usd.format(a.spend)}</td><td>${roasCell(a.roasWeb)}</td><td>${roasCell(a.roasOff)}</td><td>${mCell(a.m1)}</td><td>${mCell(a.m2)}</td><td>${esc(a.bid)}</td><td>${num2.format(a.budget)}</td><td>${opt}</td></tr>`;
-    }).join("");
-    document.getElementById("ad-count").textContent = list.length + (list.length === 1 ? " conjunto" : " conjuntos");
-  }
-  sel.addEventListener("change", () => { adState.camp = sel.value; renderAdsets(); });
-  document.getElementById("ad-thead").addEventListener("click", e => {
-    const b = e.target.closest(".sort");
-    if (!b) return;
-    const k = b.dataset.k;
-    if (adState.key === k) adState.dir *= -1; else { adState.key = k; adState.dir = (k === "name" || k === "camp") ? 1 : -1; }
-    renderAdsets();
-  });
-  renderAdsets();
+  function renderCampaigns() {
+    const P = $("panel-camp"), S = DATA[scopeKey], ADS = S.adsets, T = S.report.targets, ents = ENTRIES[scopeKey];
+    const roasCell = v => v == null ? "—" : roasF(v) + (T.roas != null ? roasChip(v, T.roas) : "");
+    const mCell = v => v == null ? "—" : pct1(v) + marginChip(v, T.margin);
+    const lastEntry = id => ents.filter(e => e.adset.id === id).sort((a, b) => (b.date - a.date) || (b.mins - a.mins))[0];
+    const groups = new Map();
+    ADS.forEach(a => { if (!groups.has(a.campaignId)) groups.set(a.campaignId, { id: a.campaignId, name: a.campaign, list: [] }); groups.get(a.campaignId).list.push(a); });
+    const camps = [...groups.values()].map(g => ({ ...g, a: aggBy(g.list) })).sort((x, y) => y.a.spend - x.a.spend);
+    const all = aggBy(ADS);
+    const rep = reports.find(x => x.key === scopeKey);
+    const inWin = rep.data.filter(d => d.date >= S.source.since && d.date <= S.source.until);
+    const winSum = sum(inWin.map(d => d.spend));
+    const period = fmtMD.format(parse(S.source.since)) + " – " + fmt.format(parse(S.source.until));
 
-  let startTab = "rel";
-  try { const s = localStorage.getItem("ib-tab"); if (s && tabs[s]) startTab = s; } catch (e) {}
+    const campRow = (label, a, title, cls) => {
+      const share = all.spend ? a.spend / all.spend : 0;
+      return `<tr class="${cls || ""}"><td title="${esc(title || "")}">${esc(label)}</td><td>${a.n}</td><td>${usd.format(a.spend)}</td>` +
+        `<td><span class="share"><span class="bar"><i style="width:${(share * 100).toFixed(1)}%"></i></span>${dec1(share * 100)}%</span></td>` +
+        `<td>${roasCell(a.roasWeb)}</td><td>${roasCell(a.roasOff)}</td><td>${mCell(a.m1)}</td><td>${mCell(a.m2)}</td></tr>`;
+    };
+    const cols = [["name", "Ad set"], ["camp", "Campaign"], ["spend", "Spend (USD)"], ["roasWeb", "ROAS site"], ["roasOff", "ROAS offline"], ["m1", "Margin %"], ["m2", "Margin % 2"], ["bid", "Bid"], ["budget", "Budget/day"], [null, "Last optimization"]];
+    const adVal = (a, k) => k === "name" ? baseOf(a) : k === "camp" ? campShort(a.campaign) : a[k];
+
+    P.innerHTML = `
+      <div class="tiles">
+        <div class="tile"><span class="k">Spend</span><span class="v">${usd.format(all.spend)}</span><span class="n">ad set sum · source of truth</span></div>
+        <div class="tile"><span class="k">Campaigns</span><span class="v">${camps.length}</span></div>
+        <div class="tile"><span class="k">Ad sets</span><span class="v">${ADS.length}</span></div>
+        <div class="tile"><span class="k">ROAS site</span><span class="v">${roasF(all.roasWeb)} ${roasChip(all.roasWeb, T.roas)}</span><span class="n">offline: ${roasF(all.roasOff)} · target ${T.roas} · spend-weighted</span></div>
+      </div>
+      <section>
+        <div class="section-head"><h2>By campaign</h2><span class="hint">${esc(S.source.label)} · ${period}</span></div>
+        <div class="chart-card">
+          <div class="tbl-scroll"><table>
+            <thead><tr><th>Campaign</th><th>Ad sets</th><th>Spend (USD)</th><th>% of spend</th><th>ROAS site</th><th>ROAS offline</th><th>Margin %</th><th>Margin % 2</th></tr></thead>
+            <tbody>${campRow("All campaigns", all, "", "total") + camps.map(c => campRow(campShort(c.name), c.a, c.name)).join("")}</tbody>
+          </table></div>
+          <p class="note">ROAS and Margin % per campaign are spend-weighted averages of the ad sets. The basis of Margin % was not provided, so aggregated margin is an approximation. The daily report adds up to ${usd.format(winSum)} for the same days (difference of ${usd.format(Math.abs(all.spend - winSum))}). Chips compare with the targets: Margin ≥ ${pctT(T.margin)}, ROAS ≥ ${T.roas}.</p>
+        </div>
+      </section>
+      <section>
+        <div class="section-head"><h2>By ad set</h2><span class="hint" id="ad-count"></span></div>
+        <div class="chart-card">
+          <div class="tools"><label for="f-camp">Campaign</label><select id="f-camp"></select></div>
+          <div class="tbl-scroll"><table><thead id="ad-thead"></thead><tbody id="ad-tbody"></tbody></table></div>
+        </div>
+      </section>`;
+    $("camp-count").textContent = camps.length;
+
+    const sel = $("f-camp");
+    if (!camps.some(c => c.id === adState.camp)) adState.camp = "all";
+    sel.innerHTML = `<option value="all">All campaigns (${ADS.length})</option>` + camps.map(c => `<option value="${esc(c.id)}">${esc(campShort(c.name))} (${c.a.n})</option>`).join("");
+    sel.value = adState.camp;
+    function renderAdsets() {
+      const list = ADS.filter(a => adState.camp === "all" || a.campaignId === adState.camp).sort((x, y) => {
+        const a = adVal(x, adState.key), b = adVal(y, adState.key);
+        if (a == null && b == null) return 0;
+        if (a == null) return 1;
+        if (b == null) return -1;
+        return (typeof a === "string" ? a.localeCompare(b) : a - b) * adState.dir;
+      });
+      $("ad-thead").innerHTML = "<tr>" + cols.map(([k, l]) => k
+        ? `<th aria-sort="${adState.key === k ? (adState.dir > 0 ? "ascending" : "descending") : "none"}"><button class="sort" data-k="${k}">${l}<span aria-hidden="true">${adState.key === k ? (adState.dir > 0 ? " ▲" : " ▼") : ""}</span></button></th>`
+        : `<th>${l}</th>`).join("") + "</tr>";
+      $("ad-tbody").innerHTML = list.map(a => {
+        const e = lastEntry(a.id);
+        const opt = e ? md(e.date) + " " + timeLabel(e) + " " + actionChip(e) : "—";
+        return `<tr><td>${esc(baseOf(a))}</td><td title="${esc(a.campaign)}">${esc(campShort(a.campaign))}</td><td>${usd.format(a.spend)}</td><td>${roasCell(a.roasWeb)}</td><td>${roasCell(a.roasOff)}</td><td>${mCell(a.m1)}</td><td>${mCell(a.m2)}</td><td>${esc(a.bid)}</td><td>${num2.format(a.budget)}</td><td>${opt}</td></tr>`;
+      }).join("");
+      $("ad-count").textContent = list.length + (list.length === 1 ? " ad set" : " ad sets");
+    }
+    sel.addEventListener("change", () => { adState.camp = sel.value; renderAdsets(); });
+    $("ad-thead").addEventListener("click", e => {
+      const b = e.target.closest(".sort");
+      if (!b) return;
+      const k = b.dataset.k;
+      if (adState.key === k) adState.dir *= -1; else { adState.key = k; adState.dir = (k === "name" || k === "camp") ? 1 : -1; }
+      renderAdsets();
+    });
+    renderAdsets();
+  }
+
+  // ---------- optimizations log ----------
+  function renderOpts() {
+    const P = $("panel-opt"), S = DATA[scopeKey], ADS = S.adsets, ents = ENTRIES[scopeKey];
+    const rep = reports.find(x => x.key === scopeKey);
+    $("opt-count").textContent = ents.length;
+    const last = ents.slice().sort((a, b) => (b.date - a.date) || (b.mins - a.mins))[0];
+    const noOpt = ADS.filter(a => !ents.some(e => e.adset.id === a.id)).length;
+    const noAp = ents.filter(e => !e.ap).length;
+    const tiles = [
+      ["Recorded optimizations", String(ents.length), "", ""],
+      ["Ad sets in export", String(ADS.length), "", noOpt ? noOpt + " without a record in the name" : "all have a record"],
+      ["Latest optimization", last ? fmt.format(last.date) + " " + timeLabel(last) : "—", "small", ""],
+      ["Time without AM/PM", String(noAp), "", noAp ? "morning or afternoon cannot be confirmed" : ""]
+    ].map(t => `<div class="tile"><span class="k">${t[0]}</span><span class="v ${t[2]}">${t[1]}</span>${t[3] ? `<span class="n">${t[3]}</span>` : ""}</div>`).join("");
+
+    const how = `<span>Ad set name: <code>NAME_OPT_MM/DD/YYYY+2@h:mmAM</code></span>` +
+      `<span><b>+2</b> / <b>−2</b> = bid cap change · a <b>$</b> prefix (<code>$+N</code>) = budget change, value as written in the name.</span>` +
+      `<span>Source: ${esc(S.source.label)}, ${fmt.format(parse(S.source.since))} – ${fmt.format(parse(S.source.until))}${S.history.length ? ", plus entries kept from an earlier export" : ""}. A rename overwrites the previous entry, so days before the earliest export may be incomplete.` +
+      (last && rep.e < last.date ? ` Daily data ends ${fmt.format(rep.e)}, so the latest optimizations are not reflected in it yet.` : "") + `</span>`;
+
+    const byDay = new Map();
+    ents.forEach(e => { const k = e.date.getTime(); if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(e); });
+    const log = !ents.length ? `<div class="how">No optimizations found in the ad set names.</div>` :
+      [...byDay.keys()].sort((a, b) => b - a).map(k => {
+        const list = byDay.get(k).sort((a, b) => (b.mins - a.mins) || a.set.localeCompare(b.set));
+        const counts = {};
+        list.forEach(e => { const a = actionKey(e); counts[a] = (counts[a] || 0) + 1; });
+        const summary = Object.entries(counts).map(([a, c]) => c + "× " + a).join(" · ");
+        return `<div class="day">
+          <div class="day-head"><h3>${fmt.format(new Date(k))}</h3><span class="hint">${list.length} ${list.length === 1 ? "optimization" : "optimizations"} · ${summary}</span></div>
+          <ul class="log">${list.map(e => `<li class="log-item">
+            <span class="log-time">${timeLabel(e)}</span>
+            <div class="log-body">
+              <div class="log-top"><b>${esc(e.set)}</b><span class="camp" title="${esc(e.campFull)}">${esc(e.camp)}</span>${actionChip(e)}${e.ap ? "" : `<span class="chip warn">AM/PM not specified</span>`}</div>
+              <span class="log-meta">${e.hist ? "From an earlier export" : `Bid in CSV: ${esc(e.adset.bid)} · Daily budget: ${num2.format(e.adset.budget)}`} · Created ${fmt.format(parse(e.adset.created))}</span>
+              <span class="log-raw">${esc(e.name)}</span>
+            </div></li>`).join("")}</ul>
+        </div>`;
+      }).join("");
+    P.innerHTML = `<div class="tiles">${tiles}</div><div class="how">${how}</div><div style="display:flex;flex-direction:column;gap:20px">${log}</div>`;
+  }
+
+  // ---------- team message ----------
+  const sgnA = v => (v > 0 ? "+" : "-") + Math.abs(v);
+  const actionText = e => e.kind === "bid" ? sgnA(e.amount) + " bidcap" : e.kind === "budget" ? "$" + sgnA(e.amount) + " budget" : "optimization (action not specified)";
+  const msgCamp = s => s === "HOLIDAY" ? "Holiday" : s.replace(/_/g, " ");
+  const onDate = (k, t) => ENTRIES[k].filter(e => e.date.getTime() === t).sort((a, b) => (a.mins - b.mins) || (a.order - b.order));
+  function buildMessage(t) {
+    const d = new Date(t), L = [];
+    const z = onDate("zones", t), s = onDate("states", t);
+    L.push(`Zones Opts ${md(d)}`, "");
+    if (!z.length) L.push("* No optimizations recorded");
+    const groups = new Map();
+    z.forEach(e => { if (!groups.has(e.camp)) groups.set(e.camp, []); groups.get(e.camp).push(e); });
+    groups.forEach((list, camp) => {
+      L.push(`* ${msgCamp(camp)}:`);
+      list.forEach(e => L.push(`   * ${e.set}: ${actionText(e)}`));
+    });
+    L.push("", "");
+    L.push("* States Opts:");
+    if (!s.length) L.push("   * No optimizations recorded");
+    const dup = {};
+    s.forEach(e => { dup[e.set] = (dup[e.set] || 0) + 1; });
+    s.forEach(e => L.push(`   * ${e.set}${dup[e.set] > 1 ? " (" + e.camp + ")" : ""}: ${actionText(e)}`));
+    return L.join("\n");
+  }
+  function renderMessage() {
+    const P = $("panel-msg");
+    const dates = [...new Set(KEYS.flatMap(k => ENTRIES[k].map(e => e.date.getTime())))].sort((a, b) => b - a);
+    P.innerHTML = `
+      <section>
+        <div class="section-head"><h2>Team message</h2><span class="hint">Built from the optimizations in the ad set names</span></div>
+        <div class="msg-card">
+          <div class="tools"><label for="msg-date">Date</label><select id="msg-date">${dates.map(t => `<option value="${t}">${fmt.format(new Date(t))} (${md(new Date(t))})</option>`).join("")}</select><span class="hint" id="msg-count"></span></div>
+          <textarea id="msg-text" spellcheck="false" aria-label="Message to the team"></textarea>
+          <div class="msg-actions"><button class="btn" id="msg-copy" type="button">Copy message</button><span class="status" id="msg-status" role="status"></span></div>
+          <p class="note">The text is editable before copying. Entries come from the ad set names; a rename overwrites an ad set's previous entry, so earlier days can be incomplete.</p>
+        </div>
+      </section>`;
+    const sel = $("msg-date"), ta = $("msg-text"), st = $("msg-status");
+    const fill = () => {
+      const t = Number(sel.value);
+      ta.value = buildMessage(t);
+      ta.style.height = "auto"; ta.style.height = (ta.scrollHeight + 4) + "px";
+      $("msg-count").textContent = `Zones: ${onDate("zones", t).length} · States: ${onDate("states", t).length}`;
+      st.textContent = "";
+    };
+    sel.addEventListener("change", fill);
+    $("msg-copy").addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(ta.value); st.textContent = "Copied"; }
+      catch (e) { ta.focus(); ta.select(); st.textContent = "Text selected. Press Ctrl+C (Cmd+C on Mac) to copy."; }
+    });
+    fill();
+  }
+
+  // ---------- tabs and scope ----------
+  const TABS = ["rel", "camp", "opt", "msg"];
+  function showTab(k, focus) {
+    tabKey = k;
+    TABS.forEach(x => {
+      const on = x === k;
+      $("tab-" + x).setAttribute("aria-selected", on);
+      $("tab-" + x).tabIndex = on ? 0 : -1;
+      $("panel-" + x).hidden = !on;
+    });
+    $("scope").hidden = k === "msg";
+    if (focus) $("tab-" + k).focus();
+    try { localStorage.setItem("ib-tab", k); } catch (e) {}
+    redrawCharts();
+  }
+  function setScope(k) {
+    scopeKey = k;
+    document.querySelectorAll("#scope button").forEach(b => b.setAttribute("aria-pressed", b.dataset.scope === k));
+    try { localStorage.setItem("ib-scope", k); } catch (e) {}
+    renderReports(); renderCampaigns(); renderOpts();
+    redrawCharts();
+  }
+  TABS.forEach(k => $("tab-" + k).addEventListener("click", () => showTab(k)));
+  $("tab-rel").parentElement.addEventListener("keydown", e => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const i = TABS.findIndex(k => $("tab-" + k) === document.activeElement);
+    if (i < 0) return;
+    e.preventDefault();
+    showTab(TABS[(i + (e.key === "ArrowRight" ? 1 : TABS.length - 1)) % TABS.length], true);
+  });
+  document.querySelectorAll("#scope button").forEach(b => b.addEventListener("click", () => setScope(b.dataset.scope)));
+
+  renderMessage();
+  let startScope = "zones", startTab = "rel";
+  try {
+    const s = localStorage.getItem("ib-scope"), t = localStorage.getItem("ib-tab");
+    if (s && DATA[s]) startScope = s;
+    if (t && TABS.includes(t)) startTab = t;
+  } catch (e) {}
+  setScope(startScope);
   if (startTab !== "rel") showTab(startTab);
 </script>
