@@ -1016,19 +1016,19 @@
     const d = new Date(t), L = [];
     const z = onDate("zones", t), s = onDate("states", t);
     L.push(`Zones Opts ${md(d)}`, "");
-    if (!z.length) L.push("* No optimizations recorded");
+    if (!z.length) L.push("No optimizations recorded");
     const groups = new Map();
     z.forEach(e => { if (!groups.has(e.camp)) groups.set(e.camp, []); groups.get(e.camp).push(e); });
     groups.forEach((list, camp) => {
-      L.push(`* ${msgCamp(camp)}:`);
-      list.forEach(e => L.push(`   * ${e.set}: ${actionText(e)}`));
+      L.push(`${msgCamp(camp)}:`);
+      list.forEach(e => L.push(`   ${e.set}: ${actionText(e)}`));
     });
     L.push("", "");
-    L.push("* States Opts:");
-    if (!s.length) L.push("   * No optimizations recorded");
+    L.push("States Opts:");
+    if (!s.length) L.push("   No optimizations recorded");
     const dup = {};
     s.forEach(e => { dup[e.set] = (dup[e.set] || 0) + 1; });
-    s.forEach(e => L.push(`   * ${e.set}${dup[e.set] > 1 ? " (" + e.camp + ")" : ""}: ${actionText(e)}`));
+    s.forEach(e => L.push(`   ${e.set}${dup[e.set] > 1 ? " (" + e.camp + ")" : ""}: ${actionText(e)}`));
     return L.join("\n");
   }
   function renderMessage() {
